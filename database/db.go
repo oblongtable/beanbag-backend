@@ -32,3 +32,8 @@ func GetTime(ctx *gin.Context) time.Time {
 	}
 	return tm
 }
+
+func GetQuizzes(ctx *gin.Context) []Quiz {
+	quizzes := make([]Quiz, 1)
+	return quizzes
+}

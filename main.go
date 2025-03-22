@@ -35,7 +35,23 @@ func main() {
 	r := gin.Default()
 	var tm time.Time
 
+	// Root
 	r.GET("/", func(c *gin.Context) {
+		tm = database.GetTime(c)
+		c.JSON(200, gin.H{
+			"message": "Home",
+			"now":     tm,
+		})
+	})
+
+	r.GET("/ping", func(c *gin.Context) {
+		tm = database.GetTime(c)
+		c.JSON(200, "pong")
+	})
+
+	// API
+	api := r.Group("/api")
+	api.GET("/", func(c *gin.Context) {
 		tm = database.GetTime(c)
 		c.JSON(200, gin.H{
 			"api": "golang",
@@ -43,9 +59,12 @@ func main() {
 		})
 	})
 
-	r.GET("/ping", func(c *gin.Context) {
+	api.GET("/quizzes", func(c *gin.Context) {
 		tm = database.GetTime(c)
-		c.JSON(200, "pong")
+		c.JSON(200, gin.H{
+			"api": "golang",
+			"now": tm,
+		})
 	})
 
 	r.Run() // listen and serve on 0.0.0.0:8080 (or "PORT" env var)
