@@ -11,7 +11,6 @@ Before you begin, ensure you have the following installed:
 * **Docker Compose:** Included with Docker Desktop.
 * **Git:** For version control.
 * **Make:** To run the provided Makefile commands.
-* **Go:** For working on the Go API.
 
 ## Local Development Setup
 
