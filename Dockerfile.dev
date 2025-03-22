@@ -1,7 +1,7 @@
 # Pin specific version for stability
 # Use separate stage for building image
 # Use debian for easier build utilities
-FROM golang:1.23-bullseye AS build-base
+FROM golang:1.24-bullseye AS build-base
 
 WORKDIR /app 
 
@@ -35,14 +35,16 @@ RUN go build \
   -ldflags="-linkmode external -extldflags -static" \
   -tags netgo \
   -o healthcheck \
-  ./healthcheck/healthcheck.go
+  ./healthcheck/healthcheck.go \
+  -buildvcs=false
 
 # Compile application during build rather than at runtime
 # Add flags to statically link binary
 RUN go build \
   -ldflags="-linkmode external -extldflags -static" \
   -tags netgo \
-  -o beanbag-backend
+  -o beanbag-backend \
+  -buildvcs=false
 
 # Use separate stage for deployable image
 FROM scratch

@@ -8,7 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"./database"
+	"beanbag-backend/database"
 )
 
 func init() {
