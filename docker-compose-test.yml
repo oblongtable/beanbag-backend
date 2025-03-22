@@ -1,0 +1,9 @@
+# Overlay configuration to run tests
+version: "3.9"
+services:
+  beanbag-backend:
+    command: 
+      - "go"
+      - "test"
+      - "-v"
+      - "./..."
