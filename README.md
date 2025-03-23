@@ -26,6 +26,13 @@ Extra recommended nice-to-haves:
   * [Makefile tools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.makefile-tools) - Makefile support for VSCode (autocomplete, etc.)
   * [Gemini Code Assist](https://marketplace.visualstudio.com/items?itemName=google.geminicodeassist) - Google+StackOverflow, but better
 
+After installing the dependencies you need to make sure to add the following to your source file, before running the Makefile targets.
+
+```bash
+export PATH=$PATH:/usr/local/go/bin
+export PATH="$HOME/go/bin:$PATH"
+```
+
 ## Local Development Setup
 
 ### Starting the Development Environment
