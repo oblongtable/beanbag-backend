@@ -24,6 +24,10 @@ compose-up-debug-build:
 compose-down:
 	docker compose -f $(DEV_COMPOSE_FILE) down
 
+.PHONY: compose-down-wipe
+compose-down-wipe:
+	docker compose -f $(DEV_COMPOSE_FILE) down -v
+
 DOCKERCONTEXT_DIR:=./
 DOCKERFILE_DIR:=./
 
