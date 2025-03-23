@@ -1,52 +1,61 @@
 package main
 
 import (
-	"io/ioutil"
 	"log"
-	"os"
+	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/oblongtable/beanbag-backend/initializers"
+)
 
-	"beanbag-backend/database"
+var (
+	server *gin.Engine
 )
 
 func init() {
-	databaseUrl := os.Getenv("DATABASE_URL")
-	if databaseUrl == "" {
-		content, err := ioutil.ReadFile(os.Getenv("DATABASE_URL_FILE"))
-		if err != nil {
-			log.Fatal(err)
-		}
-		databaseUrl = string(content)
+	config, err := initializers.LoadConfig(".")
+	if err != nil {
+		log.Fatal("? Could not load environment variables", err)
 	}
 
-	errDB := database.InitDB(databaseUrl)
-	if errDB != nil {
-		log.Fatalf("⛔ Unable to connect to database: %v\n", errDB)
-	} else {
-		log.Println("DATABASE CONNECTED 🥇")
-	}
+	initializers.ConnectDB(&config)
 
+	server = gin.Default()
 }
 
 func main() {
+	config, err := initializers.LoadConfig(".")
+	if err != nil {
+		log.Fatal("? Could not load environment variables", err)
+	}
 
-	r := gin.Default()
-	var tm time.Time
+	router := server.Group("/")
+	router.GET("/", func(ctx *gin.Context) {
+		message := "Welcome to Golang with Gorm and Postgres"
+		ctx.JSON(http.StatusOK, gin.H{"status": "success", "message": message})
+	})
 
-	r.GET("/", func(c *gin.Context) {
-		tm = database.GetTime(c)
-		c.JSON(200, gin.H{
+	router.GET("/db_health", func(ctx *gin.Context) {
+		var tm time.Time
+
+		// Use GORM's Raw method to execute the raw SQL query
+		result := initializers.DB.Raw("SELECT NOW()").Scan(&tm)
+		if result.Error != nil {
+			log.Printf("Query failed: %v\n", result.Error)
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get database time"})
+			return
+		}
+
+		ctx.JSON(http.StatusOK, gin.H{
 			"api": "golang",
-			"now": tm,
+			"now_from_postgres": tm,
 		})
 	})
 
-	r.GET("/ping", func(c *gin.Context) {
-		tm = database.GetTime(c)
-		c.JSON(200, "pong")
+	router.GET("/ping", func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, "pong")
 	})
 
-	r.Run() // listen and serve on 0.0.0.0:8080 (or "PORT" env var)
+	log.Fatal(server.Run(":" + config.ServerPort))
 }
