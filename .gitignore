@@ -16,3 +16,12 @@ __debug*
 
 # Go workspace file
 go.work
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+.DS_Store
+TODO.md
+logs.txt
+.idea/
+secret.md
+app.env
