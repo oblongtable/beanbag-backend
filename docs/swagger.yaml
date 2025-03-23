@@ -1,0 +1,412 @@
+basePath: /
+definitions:
+  db.Answer:
+    properties:
+      ansID:
+        type: integer
+      createdAt:
+        type: string
+      description:
+        type: string
+      isCorrect:
+        type: boolean
+      quesID:
+        $ref: '#/definitions/sql.NullInt32'
+      updatedAt:
+        type: string
+    type: object
+  db.Question:
+    properties:
+      createdAt:
+        type: string
+      description:
+        type: string
+      quesID:
+        type: integer
+      quizID:
+        $ref: '#/definitions/sql.NullInt32'
+      timer:
+        type: integer
+      timerOption:
+        type: boolean
+      updatedAt:
+        type: string
+    type: object
+  db.Quiz:
+    properties:
+      createdAt:
+        type: string
+      creatorID:
+        $ref: '#/definitions/sql.NullInt32'
+      description:
+        $ref: '#/definitions/sql.NullString'
+      isPriv:
+        type: boolean
+      quizID:
+        type: integer
+      quizTitle:
+        type: string
+      timer:
+        type: integer
+      updatedAt:
+        type: string
+    type: object
+  db.User:
+    properties:
+      createdAt:
+        type: string
+      deletedAt:
+        $ref: '#/definitions/sql.NullTime'
+      email:
+        type: string
+      name:
+        type: string
+      updatedAt:
+        type: string
+      userID:
+        type: integer
+    type: object
+  handlers.CreateAnswerRequest:
+    description: Answer details
+    properties:
+      description:
+        type: string
+      is_correct:
+        type: boolean
+      question_id:
+        type: integer
+    required:
+    - description
+    - question_id
+    type: object
+  handlers.CreateQuestionRequest:
+    description: Question details
+    properties:
+      description:
+        type: string
+      quiz_id:
+        type: integer
+      timer:
+        type: integer
+      timer_option:
+        type: boolean
+    required:
+    - description
+    - quiz_id
+    type: object
+  handlers.CreateQuizRequest:
+    description: Quiz details
+    properties:
+      creator_id:
+        type: integer
+      title:
+        type: string
+    required:
+    - creator_id
+    - title
+    type: object
+  handlers.CreateUserRequest:
+    description: User details
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+    required:
+    - email
+    - name
+    type: object
+  sql.NullInt32:
+    properties:
+      int32:
+        type: integer
+      valid:
+        description: Valid is true if Int32 is not NULL
+        type: boolean
+    type: object
+  sql.NullString:
+    properties:
+      string:
+        type: string
+      valid:
+        description: Valid is true if String is not NULL
+        type: boolean
+    type: object
+  sql.NullTime:
+    properties:
+      time:
+        type: string
+      valid:
+        description: Valid is true if Time is not NULL
+        type: boolean
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: This is the API for the Beanbag Backend quiz application.
+  title: Beanbag Backend API
+  version: "1.0"
+paths:
+  /answers:
+    post:
+      consumes:
+      - application/json
+      description: Create a new answer with the given details
+      parameters:
+      - description: Answer details
+        in: body
+        name: answer
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateAnswerRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/db.Answer'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new answer
+      tags:
+      - answers
+  /answers/{id}:
+    get:
+      description: Get an answer by its ID
+      parameters:
+      - description: Answer ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/db.Answer'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get an answer by ID
+      tags:
+      - answers
+  /questions:
+    post:
+      consumes:
+      - application/json
+      description: Create a new question with the given details
+      parameters:
+      - description: Question details
+        in: body
+        name: question
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateQuestionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/db.Question'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new question
+      tags:
+      - questions
+  /questions/{id}:
+    get:
+      description: Get a question by its ID
+      parameters:
+      - description: Question ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/db.Question'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a question by ID
+      tags:
+      - questions
+  /quizzes:
+    post:
+      consumes:
+      - application/json
+      description: Create a new quiz with the given details
+      parameters:
+      - description: Quiz details
+        in: body
+        name: quiz
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateQuizRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/db.Quiz'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new quiz
+      tags:
+      - quizzes
+  /quizzes/{id}:
+    get:
+      description: Get a quiz by its ID
+      parameters:
+      - description: Quiz ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/db.Quiz'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a quiz by ID
+      tags:
+      - quizzes
+  /users:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user with the given details
+      parameters:
+      - description: User details
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/db.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new user
+      tags:
+      - users
+  /users/{id}:
+    get:
+      description: Get a user by their ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/db.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a user by ID
+      tags:
+      - users
+schemes:
+- http
+swagger: "2.0"

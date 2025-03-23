@@ -16,6 +16,17 @@ func NewUserHandler(userService *services.UserService) *UserHandler {
 	return &UserHandler{userService: userService}
 }
 
+// CreateUser godoc
+// @Summary Create a new user
+// @Description Create a new user with the given details
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param user body CreateUserRequest true "User details"
+// @Success 201 {object} db.User
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /users [post]
 func (h *UserHandler) CreateUser(ctx *gin.Context) {
 	var req struct {
 		Name  string `json:"name" binding:"required"`
@@ -36,6 +47,16 @@ func (h *UserHandler) CreateUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, user)
 }
 
+// GetUser godoc
+// @Summary Get a user by ID
+// @Description Get a user by their ID
+// @Tags users
+// @Produce json
+// @Param id path int true "User ID"
+// @Success 200 {object} db.User
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /users/{id} [get]
 func (h *UserHandler) GetUser(ctx *gin.Context) {
 	userIDStr := ctx.Param("id")
 	userID, err := strconv.Atoi(userIDStr)
@@ -51,4 +72,11 @@ func (h *UserHandler) GetUser(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, user)
+}
+
+// CreateUserRequest represents the request body for creating a user.
+// @Description User details
+type CreateUserRequest struct {
+	Name  string `json:"name" binding:"required"`
+	Email string `json:"email" binding:"required,email"`
 }
