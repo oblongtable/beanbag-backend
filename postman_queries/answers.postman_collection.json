@@ -1,0 +1,58 @@
+{
+	"info": {
+		"_postman_id": "answer-collection",
+		"name": "Answers",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Create Answer",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"question_id\": 1,\n    \"description\": \"Tokyo\",\n    \"is_correct\": true\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/answers",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"answers"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Answer by ID",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/answers/1",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"answers",
+						"1"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
