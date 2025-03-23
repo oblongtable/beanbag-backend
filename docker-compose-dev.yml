@@ -13,10 +13,7 @@ services:
         target: /app/
     depends_on:
       - db
-    environment:
-      - DATABASE_URL=postgres://postgres:foobarbaz@db:5432/postgres
     networks:
-      - frontend
       - backend
     ports:
       - 8080:8080
@@ -25,12 +22,12 @@ services:
     image: postgres:15.1-alpine
     volumes:
       - pgdata:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_PASSWORD=foobarbaz
     networks:
       - backend
     ports:
       - 5432:5432
+    env_file:
+      - ./app.env
 volumes:
   pgdata:
 networks:
