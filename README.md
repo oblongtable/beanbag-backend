@@ -12,8 +12,9 @@ Before you begin, ensure you have the following installed:
 * **Git:** For version control.
 * **Make:** To run the provided Makefile commands.
 * **Go:** For doing `go get` and stopping dev env from complaining.
+* **Goose:** For database migrations. Install with `go install github.com/pressly/goose/v3/cmd/goose@latest`
 
-Extra recommended nice-to-haves: 
+Extra recommended nice-to-haves:
 
 * **VSCode**
 * **WSL** w/ Ubuntu if developing under Windows
@@ -30,7 +31,6 @@ Extra recommended nice-to-haves:
 ### Starting the Development Environment
 
 1. Start all services using Docker Compose:
-
 
     NOTE: Before doing the below, you need a file called `app.env` in the root directory of this project that has the format:
 
@@ -55,6 +55,7 @@ Extra recommended nice-to-haves:
 
     * Builds the Docker iamge for the go backend and the postgres db.
     * Starts all services as defined in the `docker-compose-dev.yml` file.
+    * Runs the database migrations using Goose.
 
     The following services will be available:
 
@@ -146,18 +147,53 @@ The project uses a standard Git workflow:
 
 9. **Merge:** After the code is reviewed, and the CI tests pass, merge your PR into main.
 
-## Adding a new model (table) to the database in dev
+## Adding a New Model (Table) or Changing the Database Schema
 
-* Create new file under `models/` directory following the examples already in there
-* Add your new model to `initializers/connectDB.go` to the following
+This project uses Goose for database migrations. Here's how to add a new model or change the database schema:
+
+1.  **Create a New Migration File:**
+    *   Use the `goose create` command to create a new migration file in the `migrations` directory:
+
+        ```bash
+        goose -dir migrations create add_my_new_table sql
+        ```
+
+        *   Replace `add_my_new_table` with a descriptive name for your migration (e.g., `add_users_table`, `add_email_to_users`, etc.).
+        *   The `sql` argument specifies that you want to create a SQL migration file.
+
+2.  **Define Your Schema Changes:**
+    *   Open the newly created migration file (e.g., `migrations/YYYYMMDDHHMMSS_add_my_new_table.sql`).
+    *   Define your schema changes in the `-- +goose Up` section.
+    *   Define the reverse changes (to undo the migration) in the `-- +goose Down` section.
+
+    ```sql
+    -- +goose Up
+    -- +goose StatementBegin
+    CREATE TABLE IF NOT EXISTS my_new_table (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    -- +goose StatementEnd
+
+    -- +goose Down
+    -- +goose StatementBegin
+    DROP TABLE IF EXISTS my_new_table;
+    -- +goose StatementEnd
     ```
-    modelsToMigrate := []interface{}{
-        &models.User{},
-        &models.Quiz{},
-        // Add other models here, e.g., &models.Product{}, &models.Order{}
-    }
+
+3.  **Run the Migrations:**
+    *   The migrations will automatically run when you start the development environment with `make compose-up-build`.
+    *   The `make` commands automatically run `sqlc generate`, which will update the `db/` directory with new queries based on any files in the `queries` folder. SQLC will also use the combined `-- +goose Up` versions of all the migrations to determine the database schema.
+
+4.  **Create New Queries (Optional):**
+    *   If you've added a new table or need to interact with the database in a new way, you'll likely need to create new SQL queries.
+    *   Create new `.sql` files in the appropriate subdirectory under the `queries/` directory (e.g., `queries/users/`, `queries/quizzes/`, etc.).
+    *   Define your queries using the SQLC `-- name:` directive.
+
+    ```sql
+    -- queries/users/get_user_by_id.sql
+    -- name: GetUserByID :one
+    SELECT * FROM users WHERE user_id = $1;
     ```
-
-Then when you do the `make compose-up-build` command again, an auto migration (database schema update) will happen that will add all the models in there with any updated fields.
-
-You may need to do a `make compose-down-wipe` first to clear the DB so you don't have lots of weird tables floating around.
