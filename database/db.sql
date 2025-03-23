@@ -1,44 +1,31 @@
 -- Use the beanbag database
 \c beanbag
 
--- USERS TABLE (authentication)
+-- QUIZZES TABLE
 CREATE TABLE quizzes (
     quiz_id SERIAL PRIMARY KEY,
     uuid VARCHAR(255) UNIQUE NOT NULL,
-    -- email VARCHAR(255) UNIQUE NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
     is_priv BOOLEAN NOT NULL DEFAULT true,
-    -- role VARCHAR(20) NOT NULL DEFAULT 'customer',
-    -- created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    timer INTEGER NOT NULL DEFAULT 30
 );
 
--- ITEMS TABLE (magical enchanted items)
+-- QUESTIONS TABLE (Depends on QUIZZES)
 CREATE TABLE questions (
     ques_id SERIAL PRIMARY KEY,
+    quiz_id INTEGER REFERENCES quizzes(quid_id) ON DELETE CASCADE,
     description TEXT NOT NULL,
-    timer INTEGER DEFAULT 30
+    sp_timer_option BOOLEAN NOT NULL DEFAULT false,
+    sp_timer INTEGER NOT NULL DEFAULT 30
 );
 
--- ORDERS TABLE (purchases made by users)
+-- ANWSERS TABLE (Depends on QUESTIONS)
 CREATE TABLE answers (
     ans_id SERIAL PRIMARY KEY,
+    ques_id INTEGER REFERENCES questions(quies_id) ON DELETE CASCADE,
     description TEXT NOT NULL,
     is_correct BOOLEAN NOT NULL
-);
-
-CREATE TABLE quiz_ques_relations (
-    ans_id SERIAL PRIMARY KEY,
-    ques_id INTEGER,
-    total DECIMAL(10, 2) NOT NULL,
-    order_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    status VARCHAR(20) DEFAULT 'pending'
-);
-
-CREATE TABLE ques_ans_relations (
-    ans_id SERIAL PRIMARY KEY,
-    ques_id INTEGER,
-    total DECIMAL(10, 2) NOT NULL,
-    order_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    status VARCHAR(20) DEFAULT 'pending'
 );
 
 -- -- ORDER_ITEMS TABLE (linking items with orders)
@@ -54,8 +41,6 @@ CREATE TABLE ques_ans_relations (
 ALTER TABLE quizzes OWNER TO postgres;
 ALTER TABLE questions OWNER TO postgres;
 ALTER TABLE answers OWNER TO postgres;
-ALTER TABLE quiz_ques_relations OWNER TO postgres;
-ALTER TABLE ques_ans_relations OWNER TO postgres;
 -- ALTER TABLE order_items OWNER TO garrick;
 
 -- Insert sample magical items
