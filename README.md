@@ -197,3 +197,7 @@ This project uses Goose for database migrations. Here's how to add a new model o
     -- name: GetUserByID :one
     SELECT * FROM users WHERE user_id = $1;
     ```
+
+## Docs
+
+When the docker containers are running the docs are available in interactive format at http://localhost:8080/swagger/index.html
