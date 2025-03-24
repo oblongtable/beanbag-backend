@@ -50,6 +50,12 @@ export PATH="$HOME/go/bin:$PATH"
 
     PORT=8080
     CLIENT_ORIGIN=http://localhost:3000
+
+    AUTH0_DOMAIN=<auth_domain>
+    AUTH0_CLIENT_ID=<auth_client_Id>
+    AUTH0_CLIENT_SECRET=<auth_client_secret>
+    AUTH0_AUDIENCE=<auth_audience>
+    AUTH0_CALLBACK_URL=<auth_callback_url>
     ```
 
     Then you can do:
