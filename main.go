@@ -34,13 +34,13 @@ var (
 )
 
 func init() {
-	config, err := initializers.LoadConfig(".")
+	err := initializers.LoadConfig(".")
 	if err != nil {
 		log.Fatal("? Could not load environment variables", err)
 	}
 
 	// Connect to the database
-	dbConn, err := initializers.NewDBConnection(&config)
+	dbConn, err := initializers.NewDBConnection(initializers.GetConfig())
 	if err != nil {
 		log.Fatal("? Could not connect to the database", err)
 	}
@@ -61,10 +61,7 @@ func init() {
 }
 
 func main() {
-	config, err := initializers.LoadConfig(".")
-	if err != nil {
-		log.Fatal("? Could not load environment variables", err)
-	}
+	config := initializers.GetConfig()
 
 	// Initialize services
 	quizService := services.NewQuizService(DBQueries)
@@ -107,21 +104,25 @@ func main() {
 		ctx.JSON(http.StatusOK, "pong")
 	})
 
-	// Quiz routes
-	router.POST("/quizzes", quizHandler.CreateQuiz)
-	router.GET("/quizzes/:id", quizHandler.GetQuiz)
+	// API routes
+	api := router.Group("/api")
+	{
+		// User routes
+		api.POST("/users", userHandler.CreateUser)
+		api.GET("/users/:id", userHandler.GetUser)
 
-	// User routes
-	router.POST("/users", userHandler.CreateUser)
-	router.GET("/users/:id", userHandler.GetUser)
+		// Quiz routes
+		api.POST("/quizzes", quizHandler.CreateQuiz)
+		api.GET("/quizzes/:id", quizHandler.GetQuiz)
 
-	// Question routes
-	router.POST("/questions", questionHandler.CreateQuestion)
-	router.GET("/questions/:id", questionHandler.GetQuestion)
+		// Question routes
+		api.POST("/questions", questionHandler.CreateQuestion)
+		api.GET("/questions/:id", questionHandler.GetQuestion)
 
-	// Answer routes
-	router.POST("/answers", answerHandler.CreateAnswer)
-	router.GET("/answers/:id", answerHandler.GetAnswer)
+		// Answer routes
+		api.POST("/answers", answerHandler.CreateAnswer)
+		api.GET("/answers/:id", answerHandler.GetAnswer)
+	}
 
 	// Swagger route
 	url := ginSwagger.URL("http://localhost:8080/swagger/doc.json") // The url pointing to API definition

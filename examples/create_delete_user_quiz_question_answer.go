@@ -32,14 +32,15 @@ var (
 )
 
 func init() {
-	config, err := initializers.LoadConfig(".")
+	err := initializers.LoadConfig(".")
 	if err != nil {
 		log.Fatal("? Could not load environment variables", err)
 	}
 
+	config := initializers.GetConfig()
 	config.DBHost = "localhost"
 
-	dbConn, err := initializers.NewDBConnection(&config)
+	dbConn, err := initializers.NewDBConnection(config)
 	if err != nil {
 		log.Fatal("? Could not connect to the database", err)
 	}

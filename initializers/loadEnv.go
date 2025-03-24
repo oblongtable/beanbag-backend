@@ -13,9 +13,17 @@ type Config struct {
 	ServerPort     string `mapstructure:"PORT"`
 
 	ClientOrigin string `mapstructure:"CLIENT_ORIGIN"`
+
+	AuthDomain       string `mapstructure:"AUTH0_DOMAIN"`
+	AuthClientID     string `mapstructure:"AUTH0_CLIENT_ID"`
+	AuthClientSecret string `mapstructure:"AUTH0_CLIENT_SECRET"`
+	AuthAudience     string `mapstructure:"AUTH0_AUDIENCE"`
+	AuthRedirectURL  string `mapstructure:"AUTH0_CALLBACK_URL"`
 }
 
-func LoadConfig(path string) (config Config, err error) {
+var config Config
+
+func LoadConfig(path string) (err error) {
 	viper.AddConfigPath(path)
 	viper.SetConfigType("env")
 	viper.SetConfigName("app")
@@ -31,3 +39,6 @@ func LoadConfig(path string) (config Config, err error) {
 	return
 }
 
+func GetConfig() *Config {
+	return &config
+}
