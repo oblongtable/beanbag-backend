@@ -110,7 +110,7 @@ func main() {
 	api := router.Group("/api")
 	{
 		api.Use(adaptor.Wrap(middleware.VerifyToken()))
-		
+
 		// User routes
 		api.POST("/users", userHandler.CreateUser)
 		api.GET("/users/:id", userHandler.GetUser)
@@ -126,6 +126,8 @@ func main() {
 		// Answer routes
 		api.POST("/answers", answerHandler.CreateAnswer)
 		api.GET("/answers/:id", answerHandler.GetAnswer)
+
+		api.GET("/ws", websocket.wsHandler)
 	}
 
 	// Swagger route
