@@ -35,10 +35,10 @@ func NotifyUsersStatusAll(c *Client) error {
 	var msgs UserStatusMessages
 	msgs.Type = MessageStatusUpdateRoomAll
 
-	for _, r := range c.Wssvr.Rooms {
+	for cli := range c.Wssvr.Clients {
 		var user UserStatus
-		user.ID = r.ID
-		user.Username = r.Name
+		user.ID = cli.ID
+		user.Username = cli.Username
 		user.IsAlive = true
 		msgs.Users = append(msgs.Users, user)
 	}
@@ -83,7 +83,7 @@ func NotifyClientsStatus(c *Client, isAlive bool) error {
 	msg.User.IsAlive = isAlive
 
 	if strmsg, err := json.Marshal(msg); err == nil {
-		for cli, _ := range c.Wssvr.Clients {
+		for cli := range c.Wssvr.Clients {
 			cli.Send <- strmsg
 		}
 	} else {
