@@ -1,9 +1,7 @@
 package websocket
 
 import (
-	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -48,7 +46,7 @@ func NewWebSockServer() (wssvr *WebSocServer) {
 }
 
 func (wssvr *WebSocServer) SetupEventHandlers() {
-	// TODO
+	wssvr.Handlers[EventCreateRoom] = CreateRoom
 }
 
 func (wssvr *WebSocServer) RouteEvent(evt Event, c *Client) error {
@@ -75,23 +73,6 @@ func (wssvr *WebSocServer) RemoveClient(c *Client) {
 	delete(wssvr.Clients, c)
 	c.Conn.Close()
 	NotifyClientsStatus(c, false)
-}
-
-func NotifyClientsStatus(c *Client, isAlive bool) error {
-
-	var msg UserStatusMessage
-	msg.Type = MessageStatusUpdate
-	msg.User.ID = "1"
-	msg.User.Username = "foo"
-	msg.User.IsAlive = isAlive
-
-	if strmsg, err := json.Marshal(msg); err == nil {
-		c.Send <- strmsg
-	} else {
-		log.Printf("failed to marshal: %v", err)
-	}
-
-	return nil
 }
 
 func (wssvr *WebSocServer) Run() {

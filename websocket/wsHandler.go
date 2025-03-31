@@ -17,6 +17,11 @@ func (wssvr *WebSocServer) ServeWs(ctx *gin.Context) {
 
 	c := NewClient(conn, wssvr)
 
+	// Update client the current users and rooms' statuses
+	// (Might cause performance issue)
+	NotifyRoomsStatusAll(c)
+	NotifyUsersStatusAll(c)
+
 	go c.ReadMessage()
 	go c.WriteMessage()
 }

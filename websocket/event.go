@@ -7,16 +7,16 @@ type Event struct {
 	Payload json.RawMessage `json:"payload"`
 }
 
-type UserStatusEvent struct {
-	ID       string
-	Username string
-	IsAlive  bool
+type CreateRoomEvent struct {
+	RoomName    string
+	MaxNumUsers int
 }
 
 type EventHandler func(event Event, c *Client) error
 
 const (
-	EventStatusUpdate = "notify_user_status"
+	EventCreateRoom = "create_room"
+	// EventStatusUpdate = "notify_user_status"
 	// EventSendMessage    = "send_message"
 	// EventRegisterRoom   = "register_room"
 	// EventUnregisterRoom = "unregister_room"
