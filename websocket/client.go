@@ -36,6 +36,7 @@ func NewClient(conn *websocket.Conn, wssvr *WebSocServer) (c *Client) {
 		Wssvr: wssvr,
 		Send:  make(chan []byte, 512),
 	}
+	wssvr.Register <- c
 	return c
 }
 
