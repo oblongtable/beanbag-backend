@@ -3,7 +3,6 @@ module github.com/oblongtable/beanbag-backend
 go 1.24.1
 
 require (
-	github.com/auth0-community/go-auth0 v1.0.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/lib/pq v1.10.9
 	github.com/pressly/goose/v3 v3.24.1
@@ -11,7 +10,6 @@ require (
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.0
 	github.com/swaggo/swag v1.16.4
-	gopkg.in/square/go-jose.v2 v2.1.7
 )
 
 require (

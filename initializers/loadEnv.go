@@ -14,11 +14,8 @@ type Config struct {
 
 	ClientOrigin string `mapstructure:"CLIENT_ORIGIN"`
 
-	AuthDomain       string `mapstructure:"AUTH0_DOMAIN"`
-	AuthClientID     string `mapstructure:"AUTH0_CLIENT_ID"`
-	AuthClientSecret string `mapstructure:"AUTH0_CLIENT_SECRET"`
-	AuthAudience     string `mapstructure:"AUTH0_AUDIENCE"`
-	AuthRedirectURL  string `mapstructure:"AUTH0_CALLBACK_URL"`
+	AuthDomain   string `mapstructure:"AUTH0_DOMAIN"`
+	AuthAudience string `mapstructure:"AUTH0_AUDIENCE"`
 }
 
 var config Config

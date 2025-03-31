@@ -13,6 +13,7 @@ import (
 	"github.com/oblongtable/beanbag-backend/internal/handlers"
 	"github.com/oblongtable/beanbag-backend/internal/services"
 	"github.com/oblongtable/beanbag-backend/middleware"
+	"github.com/oblongtable/beanbag-backend/websocket"
 
 	adaptor "github.com/gwatts/gin-adapter"
 	swaggerFiles "github.com/swaggo/files"
@@ -64,6 +65,7 @@ func init() {
 
 func main() {
 	config := initializers.GetConfig()
+	wssvr := websocket.NewWebSockServer()
 
 	// Initialize services
 	quizService := services.NewQuizService(DBQueries)
@@ -127,8 +129,11 @@ func main() {
 		api.POST("/answers", answerHandler.CreateAnswer)
 		api.GET("/answers/:id", answerHandler.GetAnswer)
 
-		api.GET("/ws", websocket.wsHandler)
+		api.GET("/ws", wssvr.ServeWs)
 	}
+
+	// Testing purpose
+	router.GET("/ws", wssvr.ServeWs)
 
 	// Swagger route
 	url := ginSwagger.URL("http://localhost:8080/swagger/doc.json") // The url pointing to API definition
