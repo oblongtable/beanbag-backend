@@ -13,6 +13,7 @@ import (
 	"github.com/oblongtable/beanbag-backend/internal/handlers"
 	"github.com/oblongtable/beanbag-backend/internal/services"
 	"github.com/oblongtable/beanbag-backend/middleware"
+	"github.com/oblongtable/beanbag-backend/websocket"
 
 	adaptor "github.com/gwatts/gin-adapter"
 	swaggerFiles "github.com/swaggo/files"
@@ -64,6 +65,7 @@ func init() {
 
 func main() {
 	config := initializers.GetConfig()
+	wssvr := websocket.NewWebSockServer()
 
 	// Initialize services
 	quizService := services.NewQuizService(DBQueries)
@@ -110,7 +112,7 @@ func main() {
 	api := router.Group("/api")
 	{
 		api.Use(adaptor.Wrap(middleware.VerifyToken()))
-		
+
 		// User routes
 		api.POST("/users", userHandler.CreateUser)
 		api.GET("/users/:id", userHandler.GetUser)
@@ -126,6 +128,8 @@ func main() {
 		// Answer routes
 		api.POST("/answers", answerHandler.CreateAnswer)
 		api.GET("/answers/:id", answerHandler.GetAnswer)
+
+		api.GET("/ws", wssvr.ServeWs)
 	}
 
 	// Swagger route

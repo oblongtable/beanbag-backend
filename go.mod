@@ -3,7 +3,6 @@ module github.com/oblongtable/beanbag-backend
 go 1.24.1
 
 require (
-	github.com/auth0-community/go-auth0 v1.0.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/lib/pq v1.10.9
 	github.com/pressly/goose/v3 v3.24.1
@@ -11,7 +10,6 @@ require (
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.0
 	github.com/swaggo/swag v1.16.4
-	gopkg.in/square/go-jose.v2 v2.1.7
 )
 
 require (
@@ -36,9 +34,11 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/context v1.1.2 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/gorilla/sessions v1.2.2 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/gwatts/gin-adapter v1.0.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
