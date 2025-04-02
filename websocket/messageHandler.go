@@ -3,8 +3,6 @@ package websocket
 import (
 	"encoding/json"
 	"log"
-
-	"github.com/google/uuid"
 )
 
 func NotifyRoomsStatusAll(c *Client) error {
@@ -15,7 +13,7 @@ func NotifyRoomsStatusAll(c *Client) error {
 		var room RoomStatus
 		room.ID = r.ID
 		room.Name = r.Name
-		room.MaxNumUsers = r.MaxNumUsers
+		room.Size = r.Size
 		room.IsAlive = true
 		msgs.Rooms = append(msgs.Rooms, room)
 	}
@@ -60,7 +58,7 @@ func NotifyRoomsStatus(r *Room, isAlive bool) error {
 	msg.Type = MessageStatusUpdateRoom
 	msg.Room.ID = r.ID
 	msg.Room.Name = r.Name
-	msg.Room.MaxNumUsers = r.MaxNumUsers
+	msg.Room.Size = r.Size
 	msg.Room.IsAlive = isAlive
 
 	if strmsg, err := json.Marshal(msg); err == nil {
@@ -78,8 +76,8 @@ func NotifyClientsStatus(c *Client, isAlive bool) error {
 
 	var msg UserStatusMessage
 	msg.Type = MessageStatusUpdateUser
-	msg.User.ID = uuid.New().String()
-	msg.User.Username = "foo"
+	msg.User.ID = c.ID
+	msg.User.Username = c.Username
 	msg.User.IsAlive = isAlive
 
 	if strmsg, err := json.Marshal(msg); err == nil {

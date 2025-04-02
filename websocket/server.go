@@ -18,8 +18,10 @@ type WebSocServer struct {
 	Rooms    RoomList
 	Handlers EventHandlerList
 
-	Register   chan *Client
-	Unregister chan *Client
+	Register       chan *Client
+	Unregister     chan *Client
+	RegisterRoom   chan *Room
+	UnregisterRoom chan *Room
 	// broadcast:  make(chan *Message, 5)
 	// Mu sync.RWMutex
 }
@@ -35,18 +37,20 @@ var upgrader = websocket.Upgrader{
 
 func NewWebSockServer() (wssvr *WebSocServer) {
 	wssvr = &WebSocServer{
-		Clients:    make(ClientList),
-		Rooms:      make(RoomList),
-		Handlers:   make(EventHandlerList),
-		Register:   make(chan *Client),
-		Unregister: make(chan *Client),
+		Clients:        make(ClientList),
+		Rooms:          make(RoomList),
+		Handlers:       make(EventHandlerList),
+		Register:       make(chan *Client),
+		Unregister:     make(chan *Client),
+		RegisterRoom:   make(chan *Room),
+		UnregisterRoom: make(chan *Room),
 	}
 	wssvr.SetupEventHandlers()
 	return wssvr
 }
 
 func (wssvr *WebSocServer) SetupEventHandlers() {
-	wssvr.Handlers[EventCreateRoom] = CreateRoom
+	wssvr.Handlers[EventRegisterRoom] = CreateRoom
 }
 
 func (wssvr *WebSocServer) RouteEvent(evt Event, c *Client) error {
@@ -70,9 +74,27 @@ func (wssvr *WebSocServer) RemoveClient(c *Client) {
 		return
 	}
 
+	if room, ok := wssvr.Rooms[c.RoomID]; ok {
+		wssvr.RemoveRoom(room)
+	}
+
 	delete(wssvr.Clients, c)
 	c.Conn.Close()
 	NotifyClientsStatus(c, false)
+}
+
+func (wssvr *WebSocServer) AddRoom(room *Room) {
+	cli := room.Leader
+	cli.RoomID = room.ID
+	cli.Wssvr.Rooms[room.ID] = room
+	NotifyRoomsStatus(room, true)
+}
+
+func (wssvr *WebSocServer) RemoveRoom(room *Room) {
+	cli := room.Leader
+	cli.RoomID = ""
+	delete(cli.Wssvr.Rooms, room.ID)
+	NotifyRoomsStatus(room, false)
 }
 
 func (wssvr *WebSocServer) Run() {
@@ -84,6 +106,12 @@ func (wssvr *WebSocServer) Run() {
 
 		case cli := <-wssvr.Unregister:
 			wssvr.RemoveClient(cli)
+
+		case room := <-wssvr.RegisterRoom:
+			wssvr.AddRoom(room)
+
+		case room := <-wssvr.UnregisterRoom:
+			wssvr.RemoveRoom(room)
 		}
 	}
 }

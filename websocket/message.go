@@ -26,10 +26,10 @@ type RoomStatusMessage struct {
 }
 
 type RoomStatus struct {
-	ID          string
-	Name        string
-	MaxNumUsers int
-	IsAlive     bool
+	ID      string
+	Name    string
+	Size    int
+	IsAlive bool
 }
 
 type RoomStatusMessages struct {

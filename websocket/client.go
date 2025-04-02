@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
@@ -32,9 +33,11 @@ type Client struct {
 
 func NewClient(conn *websocket.Conn, wssvr *WebSocServer) (c *Client) {
 	c = &Client{
-		Conn:  conn,
-		Wssvr: wssvr,
-		Send:  make(chan []byte, 512),
+		ID:       uuid.New().String(),
+		Username: "foo",
+		Conn:     conn,
+		Wssvr:    wssvr,
+		Send:     make(chan []byte, 512),
 	}
 	wssvr.Register <- c
 	return c
