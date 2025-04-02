@@ -20,9 +20,9 @@ var (
 )
 
 type Client struct {
-	ID       string
-	Username string
-	RoomID   string
+	ID       string // UUID
+	Username string // Not sure how to get it upon init, set to dummy for now
+	RoomID   string // Room Joined
 	Conn     *websocket.Conn
 
 	Wssvr *WebSocServer
