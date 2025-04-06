@@ -12,14 +12,21 @@ type CreateRoomEvent struct {
 	RoomSize int
 }
 
+type JoinRoomEvent struct {
+	RoomID string
+}
+
+type LeaveRoomEvent struct {
+	RoomID string
+}
+
 type EventHandler func(event Event, c *Client) error
 
 const (
 	// EventStatusUpdate = "notify_user_status"
 	// EventSendMessage    = "send_message"
-	EventRegisterRoom   = "register_room"
-	EventUnregisterRoom = "unregister_room"
-	EventJoinRoom       = "join_room"
-	EventLeaveRoom      = "leave_room"
+	EventCreateRoom = "create_room"
+	EventJoinRoom   = "join_room"
+	EventLeaveRoom  = "leave_room"
 	// EventStartQuiz      = "start_quiz"
 )

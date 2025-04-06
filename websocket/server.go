@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -10,6 +11,11 @@ import (
 type ClientList map[*Client]bool
 
 type RoomList map[string]*Room
+
+type ClientRoomPair struct {
+	cli  *Client
+	room *Room
+}
 
 type EventHandlerList map[string]EventHandler
 
@@ -22,6 +28,8 @@ type WebSocServer struct {
 	Unregister     chan *Client
 	RegisterRoom   chan *Room
 	UnregisterRoom chan *Room
+	JoinRoom       chan *ClientRoomPair
+	LeaveRoom      chan *ClientRoomPair
 	// broadcast:  make(chan *Message, 5)
 	// Mu sync.RWMutex
 }
@@ -44,13 +52,18 @@ func NewWebSockServer() (wssvr *WebSocServer) {
 		Unregister:     make(chan *Client),
 		RegisterRoom:   make(chan *Room),
 		UnregisterRoom: make(chan *Room),
+		JoinRoom:       make(chan *ClientRoomPair),
+		LeaveRoom:      make(chan *ClientRoomPair),
 	}
 	wssvr.SetupEventHandlers()
+	go wssvr.Run()
 	return wssvr
 }
 
 func (wssvr *WebSocServer) SetupEventHandlers() {
-	wssvr.Handlers[EventRegisterRoom] = CreateRoom
+	wssvr.Handlers[EventCreateRoom] = CreateRoomEventHandler
+	wssvr.Handlers[EventJoinRoom] = JoinRoomEventHandler
+	wssvr.Handlers[EventLeaveRoom] = LeaveRoomEventHandler
 }
 
 func (wssvr *WebSocServer) RouteEvent(evt Event, c *Client) error {
@@ -97,6 +110,35 @@ func (wssvr *WebSocServer) RemoveRoom(room *Room) {
 	NotifyRoomsStatus(room, false)
 }
 
+func (wssvr *WebSocServer) JoinRoomF(crp *ClientRoomPair) {
+	cli := crp.cli
+	room := crp.room
+
+	if _, ok := room.Clients[cli]; ok {
+		log.Printf("Join room failed: You are already in the room")
+		return
+	} else if len(room.Clients) >= room.Size {
+		log.Printf("Join room failed: Room is full")
+		return
+	}
+
+	cli.RoomID = room.ID
+	room.Clients[cli] = true
+}
+
+func (wssvr *WebSocServer) LeaveRoomF(crp *ClientRoomPair) {
+	cli := crp.cli
+	room := crp.room
+
+	if _, ok := room.Clients[cli]; !ok {
+		log.Printf("Leave room failed: You are not in the room")
+		return
+	}
+
+	cli.RoomID = ""
+	room.Clients[cli] = false
+}
+
 func (wssvr *WebSocServer) Run() {
 	for {
 		select {
@@ -112,6 +154,12 @@ func (wssvr *WebSocServer) Run() {
 
 		case room := <-wssvr.UnregisterRoom:
 			wssvr.RemoveRoom(room)
+
+		case crp := <-wssvr.JoinRoom:
+			wssvr.JoinRoomF(crp)
+
+		case crp := <-wssvr.LeaveRoom:
+			wssvr.LeaveRoomF(crp)
 		}
 	}
 }

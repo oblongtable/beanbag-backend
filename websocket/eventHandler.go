@@ -17,7 +17,7 @@ import (
 		}
 	}
 */
-func CreateRoom(event Event, c *Client) error {
+func CreateRoomEventHandler(event Event, c *Client) error {
 	fmt.Println(event)
 	var crevt CreateRoomEvent
 	if err := json.Unmarshal(event.Payload, &crevt); err != nil {
@@ -33,12 +33,26 @@ func CreateRoom(event Event, c *Client) error {
 	return nil
 }
 
-func JoinRoom(event Event, c *Client) error {
-	// TODO
+func JoinRoomEventHandler(event Event, c *Client) error {
+	fmt.Println(event)
+	var jrevt JoinRoomEvent
+	if err := json.Unmarshal(event.Payload, &jrevt); err != nil {
+		log.Printf("Join room failed: %v", err)
+		return nil
+	}
+
+	room, ok := c.Wssvr.Rooms[jrevt.RoomID]
+	if !ok {
+		log.Printf("Join room failed: Room doesn't exist")
+		return nil
+	}
+
+	c.Wssvr.JoinRoom <- &ClientRoomPair{cli: c, room: room}
+
 	return nil
 }
 
-func LeaveRoom(event Event, c *Client) error {
+func LeaveRoomEventHandler(event Event, c *Client) error {
 	// TODO
 	return nil
 }
