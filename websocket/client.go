@@ -31,6 +31,10 @@ type Client struct {
 	Send chan []byte
 }
 
+func (c Client) String() string {
+	return fmt.Sprintf("Client {ID:\"%s\", Username:\"%s\", RoomID:\"%s\"}", c.ID, c.Username, c.RoomID)
+}
+
 func NewClient(conn *websocket.Conn, wssvr *WebSocServer) (c *Client) {
 	c = &Client{
 		ID:       uuid.New().String(),
@@ -39,6 +43,7 @@ func NewClient(conn *websocket.Conn, wssvr *WebSocServer) (c *Client) {
 		Wssvr:    wssvr,
 		Send:     make(chan []byte, 512),
 	}
+
 	wssvr.Register <- c
 	return c
 }

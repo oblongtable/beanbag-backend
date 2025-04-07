@@ -1,6 +1,10 @@
 package websocket
 
-import "github.com/google/uuid"
+import (
+	"fmt"
+
+	"github.com/google/uuid"
+)
 
 const MAX_ROOM_SIZE = 8
 
@@ -15,6 +19,11 @@ type Room struct {
 	Disband chan *Client
 }
 
+func (r Room) String() string {
+	return fmt.Sprintf("Room {ID:\"%s\", Name:\"%s\", Size:%d, Leader:%s, Clients:%v}",
+		r.ID, r.Name, r.Size, r.Leader, r.Clients)
+}
+
 func NewRoom(name string, size int, leader *Client) (r *Room) {
 	r = &Room{
 		ID:      uuid.New().String(),
@@ -26,7 +35,7 @@ func NewRoom(name string, size int, leader *Client) (r *Room) {
 		Leave:   make(chan *Client),
 		Disband: make(chan *Client),
 	}
-
+	go r.Run()
 	return r
 }
 
