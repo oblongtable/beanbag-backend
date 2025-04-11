@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/oblongtable/beanbag-backend/db"
 	"github.com/oblongtable/beanbag-backend/initializers"
@@ -78,6 +79,15 @@ func main() {
 	userHandler := handlers.NewUserHandler(userService)
 	questionHandler := handlers.NewQuestionHandler(questionService)
 	answerHandler := handlers.NewAnswerHandler(answerService)
+
+	server.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{config.ClientOrigin},
+		AllowMethods:     []string{"GET", "PUT", "POST", "PATCH"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	router := server.Group("/")
 	router.GET("/", func(ctx *gin.Context) {
