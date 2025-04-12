@@ -2,9 +2,9 @@
 name: 01 Main Joblist
 
 permissions:
-  contents: read # clone the repo to lint
-  statuses: write #read/write to repo custom statuses
-  packages: write # needed to push docker image to ghcr.io
+  contents: read
+  statuses: write
+  packages: write
 
 on:
   push:
@@ -13,16 +13,17 @@ on:
   pull_request:
 
 jobs:
-# FIRST JOB #######################################################################   
+# FIRST JOB #######################################################################
   build-test-image:
-    name: Build Image for Testing
+    name: Build Dev Image for Testing
     runs-on: ubuntu-latest
 
     permissions:
-      packages: write # needed to push docker image to ghcr.io
+      packages: write
 
     outputs:
-      image_name_tag: ${{ steps.push-image.outputs.image_name_tag }} # Output the tag for other jobs
+      # Output the explicitly constructed image tag
+      image_tag: ${{ steps.tag.outputs.tag }}
 
     steps:
       - name: Checkout git repo
@@ -31,46 +32,48 @@ jobs:
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v3
-        # Pass the builder name to the build-push action later
 
       - name: Login to ghcr.io registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }} # Use GITHUB_TOKEN for GHCR
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Step to explicitly define the tag
+      - name: Define Image Tag
+        id: tag
+        run: |
+          IMAGE_TAG="ghcr.io/${{ github.repository }}/beanbag-backend:dev-${{ github.run_id }}"
+          echo "IMAGE_TAG=${IMAGE_TAG}" # Log the tag being set
+          echo "tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
 
       - name: Build and push beanbag-backend DEV image
-        id: push-image # Give this step an ID to reference its output
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile.dev
-          target: dev # *** SPECIFY THE 'dev' STAGE ***
+          target: dev
           builder: ${{ steps.buildx.outputs.name }}
           push: true
-          # Define the tag using github.run_id for uniqueness
-          tags: ghcr.io/${{ github.repository }}/beanbag-backend:dev-${{ github.run_id }}
+          # Use the tag defined in the previous step
+          tags: ${{ steps.tag.outputs.tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          # Output the full image name and tag generated
-          outputs: type=image,name=image_name_tag
-    
+
 # NEXT JOB #######################################################################
   test-unit:
     name: Unit tests in Docker
-    needs: [build-test-image] # Depends on the build job
+    needs: [build-test-image]
     runs-on: ubuntu-latest
 
     env:
       # Define ALL variables needed by docker-compose-ci.yml
-      # Database Credentials
       POSTGRES_USER: testuser
       POSTGRES_PASSWORD: testpassword
       POSTGRES_DB: testdb
       POSTGRES_PORT: 5432
 
-      # App Config
       PORT: 8080
       CLIENT_ORIGIN: http://localhost:3000
       AUTH0_DOMAIN: "test.auth0.com"
@@ -79,7 +82,8 @@ jobs:
       AUTH0_CLIENT_SECRET: "test-client-secret"
       AUTH0_CALLBACK_URL: "http://localhost:3000/callback"
 
-      BACKEND_IMAGE: ${{ needs.build-test-image.outputs.image_name_tag }}
+      # Use the simplified output name from the previous job
+      BACKEND_IMAGE: ${{ needs.build-test-image.outputs.image_tag }}
 
     permissions:
       packages: read
@@ -97,4 +101,19 @@ jobs:
 
       - name: Run tests using docker compose up
         run: |
+          echo "--- DEBUG ---"
+          echo "Using image tag from previous job: $BACKEND_IMAGE" # Print the value
+          echo "Verifying environment variables for compose:"
+          printenv | grep POSTGRES_ # Print relevant vars
+          printenv | grep AUTH0_
+          printenv | grep PORT
+          printenv | grep CLIENT_ORIGIN
+          echo "--- END DEBUG ---"
+
+          # Check if BACKEND_IMAGE is empty before running compose
+          if [ -z "$BACKEND_IMAGE" ]; then
+            echo "Error: BACKEND_IMAGE environment variable is empty!"
+            exit 1
+          fi
+
           docker compose -f docker-compose-ci.yml up --abort-on-container-exit --exit-code-from beanbag-backend
