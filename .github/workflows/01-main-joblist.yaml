@@ -18,27 +18,11 @@ jobs:
     name: Build Image for Testing
     runs-on: ubuntu-latest
 
-    env:
-      # --- Database Credentials for Testing ---
-      POSTGRES_HOST: beanbag-test-db # Example: Name of test DB service in compose
-      POSTGRES_USER: testuser        # Example: User for test DB
-      POSTGRES_PASSWORD: testpassword  # Example: Password for test DB
-      POSTGRES_DB: testdb            # Example: Name of test DB
-      POSTGRES_PORT: 5432            # Default Port
-
-      PORT: 8080                     # Example test port
-      CLIENT_ORIGIN: http://localhost:3001 # Example test origin
-      AUTH0_DOMAIN: "test.auth0.com"
-      AUTH0_AUDIENCE: "test-audience"
-      AUTH0_CLIENT_ID: "test-client-id"
-      AUTH0_CLIENT_SECRET: "test-client-secret"
-      AUTH0_CALLBACK_URL: "http://localhost:3000/callback"
-
     permissions:
       packages: write # needed to push docker image to ghcr.io
 
     outputs:
-      image_tag: ${{ steps.export-tag.outputs.tag }} # Output the tag for other jobs
+      image_name_tag: ${{ steps.push-image.outputs.image_name_tag }} # Output the tag for other jobs
 
     steps:
       - name: Checkout git repo
@@ -56,20 +40,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }} # Use GITHUB_TOKEN for GHCR
 
-      - name: Export image tag
-        id: export-tag 
-        run: echo "tag=${{ github.run_id }}" >> $GITHUB_OUTPUT
-
-      - name: Build and push beanbag-backend image
+      - name: Build and push beanbag-backend DEV image
+        id: push-image # Give this step an ID to reference its output
         uses: docker/build-push-action@v5
         with:
-          context: . # Build context is the root of the repo
-          file: ./Dockerfile.dev # Specify the Dockerfile to use
-          builder: ${{ steps.buildx.outputs.name }} # Use the builder set up earlier
-          push: true # Push the image to the registry
-          tags: ghcr.io/${{ github.repository }}/beanbag-backend:${{ steps.export-tag.outputs.tag }}
-          cache-from: type=gha # Enable GitHub Actions cache for builds
+          context: .
+          file: ./Dockerfile.dev
+          target: dev # *** SPECIFY THE 'dev' STAGE ***
+          builder: ${{ steps.buildx.outputs.name }}
+          push: true
+          # Define the tag using github.run_id for uniqueness
+          tags: ghcr.io/${{ github.repository }}/beanbag-backend:dev-${{ github.run_id }}
+          cache-from: type=gha
           cache-to: type=gha,mode=max
+          # Output the full image name and tag generated
+          outputs: type=image,name=image_name_tag
     
 # NEXT JOB #######################################################################
   test-unit:
@@ -94,14 +79,10 @@ jobs:
       AUTH0_CLIENT_SECRET: "test-client-secret"
       AUTH0_CALLBACK_URL: "http://localhost:3000/callback"
 
-      # Tag for the image built in the previous job
-      IMAGE_TAG: ${{ needs.build-test-image.outputs.image_tag }}
-      # GitHub Repository name (automatically available, but explicit doesn't hurt)
-      GITHUB_REPOSITORY: ${{ github.repository }}
-
+      BACKEND_IMAGE: ${{ needs.build-test-image.outputs.image_name_tag }}
 
     permissions:
-      packages: read # Needed to pull the image from GHCR
+      packages: read
 
     steps:
       - name: Checkout git repo
@@ -116,8 +97,5 @@ jobs:
 
       - name: Run tests using docker compose up
         run: |
-          # 'up' starts all services defined in the file
-          # '--abort-on-container-exit' stops all containers if any container stops (e.g., test runner finishes)
-          # '--exit-code-from beanbag-backend' makes the 'docker compose' command exit with the exit code of the test runner service
+          # Ensure the BACKEND_IMAGE env var is available for compose substitution
           docker compose -f docker-compose-ci.yml up --abort-on-container-exit --exit-code-from beanbag-backend
-

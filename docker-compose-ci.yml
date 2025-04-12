@@ -20,7 +20,7 @@ services:
   # Test Runner Service (Your Application)
   beanbag-backend:
     # IMPORTANT: Use the image built and pushed in the previous job
-    image: ghcr.io/${GITHUB_REPOSITORY}/beanbag-backend:${IMAGE_TAG}
+    image: ${BACKEND_IMAGE}
     depends_on:
       - beanbag-test-db # Ensure DB starts before the app tries to connect/test
     # Override the command to run tests (same as docker-compose-test.yml)
