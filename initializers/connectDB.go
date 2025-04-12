@@ -3,6 +3,7 @@ package initializers
 import (
 	"database/sql"
 	"fmt"
+	"log"
 
 	_ "github.com/lib/pq" // Import the PostgreSQL driver
 )
@@ -11,6 +12,11 @@ import (
 func NewDBConnection(config *Config) (*sql.DB, error) {
 	// Corrected line: Changed DBname to dbname
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Europe/London", config.DBHost, config.DBUserName, config.DBUserPassword, config.DBName, config.DBPort)
+
+	// Log the DSN string (mask password)
+    maskedDSN := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Europe/London", config.DBHost, config.DBUserName, "***", config.DBName, config.DBPort)
+    log.Printf("Attempting DB connection with DSN: %s", maskedDSN) // Add this log
+
 
 	DB, err := sql.Open("postgres", dsn) // Use sql.Open
 	if err != nil {

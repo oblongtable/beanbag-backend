@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"embed"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -35,7 +36,9 @@ var (
 	server    *gin.Engine
 	DBQueries *db.Queries
 	db_conn   *sql.DB
-)
+	//go:embed migrations/*.sql
+	embedMigrations embed.FS
+) 
 
 func init() {
 	err := initializers.LoadConfig(".")
@@ -50,7 +53,7 @@ func init() {
 	}
 
 	// Run migrations
-	initializers.MigrateDB(dbConn)
+	initializers.MigrateDB(dbConn, embedMigrations)
 
 	// Create a new Queries instance
 	queries := db.New(dbConn)

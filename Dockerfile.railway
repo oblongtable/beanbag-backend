@@ -8,11 +8,6 @@ WORKDIR /app
 # Copy only files required to install dependencies (better layer caching)
 COPY go.mod go.sum ./
 
-# Use cache mount to speed up install of existing dependencies
-RUN --mount=type=cache,target=/go/pkg/mod \
-  --mount=type=cache,target=/root/.cache/go-build \
-  go mod download
-
 FROM build-base AS dev
 
 # Install air for hot reload & delve for debugging
