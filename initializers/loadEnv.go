@@ -35,9 +35,9 @@ func LoadConfig(path string) (err error) {
 	log.Println("--- End direct ENV VAR check ---")
 	// --- End Direct Check ---
 
-	// viper.AddConfigPath(path)
-	// viper.SetConfigType("env")
-	// viper.SetConfigName("app")
+	viper.AddConfigPath(path)
+	viper.SetConfigType("env")
+	viper.SetConfigName("app")
 
 	viper.AutomaticEnv()
 
