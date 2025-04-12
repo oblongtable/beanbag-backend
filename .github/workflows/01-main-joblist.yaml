@@ -97,5 +97,4 @@ jobs:
 
       - name: Run tests using docker compose up
         run: |
-          # Ensure the BACKEND_IMAGE env var is available for compose substitution
           docker compose -f docker-compose-ci.yml up --abort-on-container-exit --exit-code-from beanbag-backend
