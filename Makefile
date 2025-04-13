@@ -10,12 +10,12 @@ export PATH := $(GOPATH_BIN):$(PATH)
 
 # Check if sqlc is installed
 ifeq (, $(shell which sqlc))
-$(error sqlc is not installed. Please run 'go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest')
+$(error sqlc is not installed. Please run 'go get github.com/sqlc-dev/sqlc/cmd/sqlc@latest')
 $(error This may be due to use of sudo. Please just run make, or if you absolutely need 'sudo', use 'sudo -E make ...' to preserve your environment.)
 endif
 
 ifeq (, $(shell which swag))
-$(error swag could not be found. Please install it using: go install github.com/swaggo/swag/cmd/swag@latest')
+$(error swag could not be found. Please install it using: go get github.com/swaggo/swag/cmd/swag@latest')
 endif
 
 ### DOCKER COMPOSE COMMANDS
