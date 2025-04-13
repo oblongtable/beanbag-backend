@@ -47,6 +47,9 @@ COPY --from=build-production /etc/passwd /etc/passwd
 # Copy the app binary from the build stage
 COPY --from=build-production /app/beanbag-backend beanbag-backend
 
+# Needed for auth0 calls
+COPY --from=build-production /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+
 # Use nonroot user
 USER nonroot
 
