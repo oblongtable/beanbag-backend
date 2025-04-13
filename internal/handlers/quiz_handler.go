@@ -28,9 +28,23 @@ func NewQuizHandler(quizService *services.QuizService) *QuizHandler {
 // @Failure 500 {object} map[string]string
 // @Router /quizzes [post]
 func (h *QuizHandler) CreateQuiz(ctx *gin.Context) {
+
+	type answer struct {
+		Text      string `json:"text" binding:"required"`
+		IsCorrect bool   `json:"isCorrect" binding:"required"`
+	}
+
+	type question struct {
+		Text       string   `json:"text" binding:"required"`
+		UseTimer   bool     `json:"useTimer" binding:"required"`
+		TimerValue int32    `json:"timerValue" binding:"required"`
+		Answers    []answer `json:"answers" binding:"required"`
+	}
+
 	var req struct {
-		Title     string `json:"title" binding:"required"`
-		CreatorID int32  `json:"creator_id" binding:"required"`
+		Title     string     `json:"title" binding:"required"`
+		CreatorID int32      `json:"creatorId" binding:"required"`
+		Questions []question `json:"questions" binding:"required"`
 	}
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
