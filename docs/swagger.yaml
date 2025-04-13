@@ -1,5 +1,46 @@
 basePath: /
 definitions:
+  apimodels.AnswerApiModel:
+    properties:
+      isCorrect:
+        type: boolean
+      text:
+        type: string
+    required:
+    - isCorrect
+    - text
+    type: object
+  apimodels.QuestionApiModel:
+    properties:
+      answers:
+        items:
+          $ref: '#/definitions/apimodels.AnswerApiModel'
+        type: array
+      text:
+        type: string
+      timerValue:
+        type: integer
+      useTimer:
+        type: boolean
+    required:
+    - text
+    - timerValue
+    - useTimer
+    type: object
+  apimodels.QuizApiModel:
+    properties:
+      creator_id:
+        type: integer
+      questions:
+        items:
+          $ref: '#/definitions/apimodels.QuestionApiModel'
+        type: array
+      title:
+        type: string
+    required:
+    - creator_id
+    - title
+    type: object
   db.Answer:
     properties:
       ansID:
@@ -66,7 +107,7 @@ definitions:
       userID:
         type: integer
     type: object
-  handlers.CreateAnswerRequest:
+  handlers.AnswerApiModel:
     description: Answer details
     properties:
       description:
@@ -79,7 +120,18 @@ definitions:
     - description
     - question_id
     type: object
-  handlers.CreateQuestionRequest:
+  handlers.CreateUserRequest:
+    description: User details
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+    required:
+    - email
+    - name
+    type: object
+  handlers.QuestionApiModel:
     description: Question details
     properties:
       description:
@@ -94,27 +146,16 @@ definitions:
     - description
     - quiz_id
     type: object
-  handlers.CreateQuizRequest:
-    description: Quiz details
-    properties:
-      creator_id:
-        type: integer
-      title:
-        type: string
-    required:
-    - creator_id
-    - title
-    type: object
-  handlers.CreateUserRequest:
-    description: User details
+  handlers.SyncUserRequest:
     properties:
       email:
         type: string
       name:
+        description: Name might not always be present from Auth0, handle potential
+          empty string
         type: string
     required:
     - email
-    - name
     type: object
   sql.NullInt32:
     properties:
@@ -158,7 +199,7 @@ paths:
         name: answer
         required: true
         schema:
-          $ref: '#/definitions/handlers.CreateAnswerRequest'
+          $ref: '#/definitions/handlers.AnswerApiModel'
       produces:
       - application/json
       responses:
@@ -223,7 +264,7 @@ paths:
         name: question
         required: true
         schema:
-          $ref: '#/definitions/handlers.CreateQuestionRequest'
+          $ref: '#/definitions/handlers.QuestionApiModel'
       produces:
       - application/json
       responses:
@@ -281,39 +322,55 @@ paths:
     post:
       consumes:
       - application/json
-      description: Create a new quiz with the given details
+      description: Create a quiz, its questions, and their answers in a single transaction.
       parameters:
-      - description: Quiz details
+      - description: Full quiz details including questions and answers
         in: body
         name: quiz
         required: true
         schema:
-          $ref: '#/definitions/handlers.CreateQuizRequest'
+          $ref: '#/definitions/apimodels.QuizApiModel'
       produces:
       - application/json
       responses:
         "201":
-          description: Created
+          description: 'The fully created quiz structure" // <-- FIX: Use qualified
+            name'
           schema:
-            $ref: '#/definitions/db.Quiz'
+            $ref: '#/definitions/apimodels.QuizApiModel'
         "400":
-          description: Bad Request
+          description: Invalid input
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden (Creator ID mismatch)
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal Server Error
+          description: Internal server error
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Create a new quiz
+      security:
+      - BearerAuth: []
+      summary: Create a full quiz with questions and answers
       tags:
       - quizzes
-  /quizzes/{id}:
+  /quizzes/{id}/basic:
     get:
-      description: Get a quiz by its ID
+      description: Get only the quiz details without questions/answers. Consider using
+        GET /quizzes/{id}/full instead.
       parameters:
       - description: Quiz ID
         in: path
@@ -324,22 +381,125 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Basic quiz object
           schema:
             $ref: '#/definitions/db.Quiz'
         "400":
-          description: Bad Request
+          description: Invalid ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Quiz not found
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal Server Error
+          description: Internal error
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Get a quiz by ID
+      security:
+      - BearerAuth: []
+      summary: Get basic quiz details by ID (DEPRECATED? Use GET /quizzes/{id}/full)
+      tags:
+      - quizzes
+  /quizzes/{id}/full:
+    get:
+      description: Get quiz details including all questions and their answers
+      parameters:
+      - description: Quiz ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'Full quiz structure" // <-- FIX: Use qualified name apimodels.QuizApiModel'
+          schema:
+            $ref: '#/definitions/apimodels.QuizApiModel'
+        "400":
+          description: Invalid ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Quiz not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get full quiz details by ID
+      tags:
+      - quizzes
+  /quizzes/basic:
+    post:
+      consumes:
+      - application/json
+      description: Create only the quiz entry without questions/answers. Consider
+        using POST /quizzes instead.
+      parameters:
+      - description: Basic Quiz details (Title, CreatorID)
+        in: body
+        name: quiz
+        required: true
+        schema:
+          $ref: '#/definitions/apimodels.QuizApiModel'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: The created basic quiz object
+          schema:
+            $ref: '#/definitions/db.Quiz'
+        "400":
+          description: Invalid input
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new basic quiz entry (DEPRECATED? Use POST /quizzes for full
+        creation)
       tags:
       - quizzes
   /users:
@@ -405,6 +565,53 @@ paths:
               type: string
             type: object
       summary: Get a user by ID
+      tags:
+      - users
+  /users/sync:
+    post:
+      consumes:
+      - application/json
+      description: Creates a user if they don't exist based on email, or updates existing
+        user's name.
+      parameters:
+      - description: User details (name, email) from Auth0
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.SyncUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User found and potentially updated
+          schema:
+            $ref: '#/definitions/db.User'
+        "201":
+          description: User created
+          schema:
+            $ref: '#/definitions/db.User'
+        "400":
+          description: Invalid input
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized (JWT missing/invalid)
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Sync Auth0 user with backend database via Email
       tags:
       - users
 schemes:

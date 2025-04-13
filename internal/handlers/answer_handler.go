@@ -22,7 +22,7 @@ func NewAnswerHandler(answerService *services.AnswerService) *AnswerHandler {
 // @Tags answers
 // @Accept json
 // @Produce json
-// @Param answer body CreateAnswerRequest true "Answer details"
+// @Param answer body AnswerApiModel true "Answer details"
 // @Success 201 {object} db.Answer
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
@@ -75,9 +75,9 @@ func (h *AnswerHandler) GetAnswer(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, answer)
 }
 
-// CreateAnswerRequest represents the request body for creating an answer.
+// AnswerApiModel represents the request body for creating an answer.
 // @Description Answer details
-type CreateAnswerRequest struct {
+type AnswerApiModel struct {
 	QuestionID  int32  `json:"question_id" binding:"required"`
 	Description string `json:"description" binding:"required"`
 	IsCorrect   bool   `json:"is_correct"`

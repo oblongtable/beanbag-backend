@@ -82,7 +82,7 @@ func main() {
 	wssvr := websocket.NewWebSockServer()
 
 	// Initialize services
-	quizService := services.NewQuizService(DBQueries)
+	quizService := services.NewQuizService(db_conn, DBQueries)
 	userService := services.NewUserService(DBQueries)
 	questionService := services.NewQuestionService(DBQueries)
 	answerService := services.NewAnswerService(DBQueries)
@@ -135,14 +135,18 @@ func main() {
 	api := router.Group("/api")
 	{
 		api.Use(adaptor.Wrap(middleware.VerifyToken()))
+		api.Use(middleware.ExtractAndSetClaims())
 
 		// User routes
 		api.POST("/users", userHandler.CreateUser)
+		api.POST("/users/sync", userHandler.SyncUser)
 		api.GET("/users/:id", userHandler.GetUser)
 
 		// Quiz routes
 		api.POST("/quizzes", quizHandler.CreateQuiz)
+		api.POST("/quizzes/minimal", quizHandler.CreateQuizMinimal) // Assuming this maps to full creation
 		api.GET("/quizzes/:id", quizHandler.GetQuiz)
+		api.GET("/quizzes/:id/full", quizHandler.GetFullQuiz) // Add this route for the full quiz
 
 		// Question routes
 		api.POST("/questions", questionHandler.CreateQuestion)

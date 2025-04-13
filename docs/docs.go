@@ -35,7 +35,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.CreateAnswerRequest"
+                            "$ref": "#/definitions/handlers.AnswerApiModel"
                         }
                     }
                 ],
@@ -134,7 +134,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.CreateQuestionRequest"
+                            "$ref": "#/definitions/handlers.QuestionApiModel"
                         }
                     }
                 ],
@@ -215,7 +215,12 @@ const docTemplate = `{
         },
         "/quizzes": {
             "post": {
-                "description": "Create a new quiz with the given details",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a quiz, its questions, and their answers in a single transaction.",
                 "consumes": [
                     "application/json"
                 ],
@@ -225,27 +230,45 @@ const docTemplate = `{
                 "tags": [
                     "quizzes"
                 ],
-                "summary": "Create a new quiz",
+                "summary": "Create a full quiz with questions and answers",
                 "parameters": [
                     {
-                        "description": "Quiz details",
+                        "description": "Full quiz details including questions and answers",
                         "name": "quiz",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.CreateQuizRequest"
+                            "$ref": "#/definitions/apimodels.QuizApiModel"
                         }
                     }
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "The fully created quiz structure\" // \u003c-- FIX: Use qualified name",
                         "schema": {
-                            "$ref": "#/definitions/db.Quiz"
+                            "$ref": "#/definitions/apimodels.QuizApiModel"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (Creator ID mismatch)",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -254,7 +277,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Internal server error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -265,16 +288,87 @@ const docTemplate = `{
                 }
             }
         },
-        "/quizzes/{id}": {
-            "get": {
-                "description": "Get a quiz by its ID",
+        "/quizzes/basic": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create only the quiz entry without questions/answers. Consider using POST /quizzes instead.",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "quizzes"
                 ],
-                "summary": "Get a quiz by ID",
+                "summary": "Create a new basic quiz entry (DEPRECATED? Use POST /quizzes for full creation)",
+                "parameters": [
+                    {
+                        "description": "Basic Quiz details (Title, CreatorID)",
+                        "name": "quiz",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/apimodels.QuizApiModel"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "The created basic quiz object",
+                        "schema": {
+                            "$ref": "#/definitions/db.Quiz"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/quizzes/{id}/basic": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get only the quiz details without questions/answers. Consider using GET /quizzes/{id}/full instead.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "quizzes"
+                ],
+                "summary": "Get basic quiz details by ID (DEPRECATED? Use GET /quizzes/{id}/full)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -286,13 +380,31 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Basic quiz object",
                         "schema": {
                             "$ref": "#/definitions/db.Quiz"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Invalid ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Quiz not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -301,7 +413,77 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Internal error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/quizzes/{id}/full": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get quiz details including all questions and their answers",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "quizzes"
+                ],
+                "summary": "Get full quiz details by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Quiz ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Full quiz structure\" // \u003c-- FIX: Use qualified name apimodels.QuizApiModel",
+                        "schema": {
+                            "$ref": "#/definitions/apimodels.QuizApiModel"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Quiz not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -364,6 +546,78 @@ const docTemplate = `{
                 }
             }
         },
+        "/users/sync": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a user if they don't exist based on email, or updates existing user's name.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Sync Auth0 user with backend database via Email",
+                "parameters": [
+                    {
+                        "description": "User details (name, email) from Auth0",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.SyncUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User found and potentially updated",
+                        "schema": {
+                            "$ref": "#/definitions/db.User"
+                        }
+                    },
+                    "201": {
+                        "description": "User created",
+                        "schema": {
+                            "$ref": "#/definitions/db.User"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized (JWT missing/invalid)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/users/{id}": {
             "get": {
                 "description": "Get a user by their ID",
@@ -413,6 +667,67 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "apimodels.AnswerApiModel": {
+            "type": "object",
+            "required": [
+                "isCorrect",
+                "text"
+            ],
+            "properties": {
+                "isCorrect": {
+                    "type": "boolean"
+                },
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "apimodels.QuestionApiModel": {
+            "type": "object",
+            "required": [
+                "text",
+                "timerValue",
+                "useTimer"
+            ],
+            "properties": {
+                "answers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/apimodels.AnswerApiModel"
+                    }
+                },
+                "text": {
+                    "type": "string"
+                },
+                "timerValue": {
+                    "type": "integer"
+                },
+                "useTimer": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "apimodels.QuizApiModel": {
+            "type": "object",
+            "required": [
+                "creator_id",
+                "title"
+            ],
+            "properties": {
+                "creator_id": {
+                    "type": "integer"
+                },
+                "questions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/apimodels.QuestionApiModel"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
         "db.Answer": {
             "type": "object",
             "properties": {
@@ -514,7 +829,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.CreateAnswerRequest": {
+        "handlers.AnswerApiModel": {
             "description": "Answer details",
             "type": "object",
             "required": [
@@ -533,7 +848,23 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.CreateQuestionRequest": {
+        "handlers.CreateUserRequest": {
+            "description": "User details",
+            "type": "object",
+            "required": [
+                "email",
+                "name"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.QuestionApiModel": {
             "description": "Question details",
             "type": "object",
             "required": [
@@ -555,34 +886,17 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.CreateQuizRequest": {
-            "description": "Quiz details",
+        "handlers.SyncUserRequest": {
             "type": "object",
             "required": [
-                "creator_id",
-                "title"
-            ],
-            "properties": {
-                "creator_id": {
-                    "type": "integer"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
-        "handlers.CreateUserRequest": {
-            "description": "User details",
-            "type": "object",
-            "required": [
-                "email",
-                "name"
+                "email"
             ],
             "properties": {
                 "email": {
                     "type": "string"
                 },
                 "name": {
+                    "description": "Name might not always be present from Auth0, handle potential empty string",
                     "type": "string"
                 }
             }

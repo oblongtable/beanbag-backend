@@ -1,7 +1,7 @@
 version: "2"
 sql:
   - schema: "migrations/*.sql" # Changed this line
-    queries: "queries/**/*.sql"
+    queries: "queries/*.sql"
     engine: "postgresql"
     gen:
       go:

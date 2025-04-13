@@ -6,8 +6,18 @@
 	},
 	"item": [
 		{
-			"name": "Create Quiz",
+			"name": "Create Basic Quiz (Legacy?)",
 			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{Auth0AccessToken}}",
+							"type": "string"
+						}
+					]
+				},
 				"method": "POST",
 				"header": [
 					{
@@ -18,39 +28,141 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"title\": \"My New Quiz\",\n    \"creator_id\": 1\n}"
+					"raw": "{\n    \"title\": \"My Basic Quiz Title\",\n    \"creator_id\": 1\n}"
 				},
 				"url": {
-					"raw": "http://localhost:8080/quizzes",
+					"raw": "http://localhost:8080/api/quizzes/basic",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
 					"port": "8080",
 					"path": [
-						"quizzes"
+						"api",
+						"quizzes",
+						"basic"
 					]
-				}
+				},
+				"description": "Creates only the basic quiz row. Requires Auth. Ensure creator_id is valid. Route might be /api/quizzes depending on main.go setup."
 			},
 			"response": []
 		},
 		{
-			"name": "Get Quiz by ID",
+			"name": "Get Basic Quiz by ID (Legacy?)",
 			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{Auth0AccessToken}}",
+							"type": "string"
+						}
+					]
+				},
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:8080/quizzes/1",
+					"raw": "http://localhost:8080/api/quizzes/1/basic",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
 					"port": "8080",
 					"path": [
+						"api",
 						"quizzes",
-						"1"
+						"1",
+						"basic"
 					]
-				}
+				},
+				"description": "Gets only the basic quiz row details. Requires Auth. Replace '1' with actual quiz ID. Route might be /api/quizzes/:id depending on main.go setup."
+			},
+			"response": []
+		},
+		{
+			"name": "Create Full Quiz (Minimal)",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{Auth0AccessToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"title\": \"My Full Science Quiz\",\n  \"creator_id\": 1, \n  \"questions\": [\n    {\n      \"text\": \"What is H2O?\",\n      \"useTimer\": false,\n      \"timerValue\": 0,\n      \"answers\": [\n        {\n          \"text\": \"Oxygen\",\n          \"isCorrect\": false\n        },\n        {\n          \"text\": \"Water\",\n          \"isCorrect\": true\n        },\n        {\n          \"text\": \"Hydrogen Peroxide\",\n          \"isCorrect\": false\n        }\n      ]\n    },\n    {\n      \"text\": \"What is the closest star?\",\n      \"useTimer\": true,\n      \"timerValue\": 20,\n      \"answers\": [\n        {\n          \"text\": \"The Sun\",\n          \"isCorrect\": true\n        },\n        {\n          \"text\": \"Proxima Centauri\",\n          \"isCorrect\": false\n        },\n        {\n          \"text\": \"Alpha Centauri A\",\n          \"isCorrect\": false\n        }\n      ]\n    }\n  ]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/quizzes",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"quizzes"
+					]
+				},
+				"description": "Creates a full quiz with questions and answers using the CreateQuizMinimal handler. Requires Auth. **Replace creator_id with a valid user ID from your DB.** Assumes POST /api/quizzes maps to CreateQuizMinimal."
+			},
+			"response": []
+		},
+		{
+			"name": "Get Full Quiz by ID",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{Auth0AccessToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/quizzes/:quizId/full",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"quizzes",
+						":quizId",
+						"full"
+					],
+					"variable": [
+						{
+							"key": "quizId",
+							"value": "1",
+							"description": "Replace with the ID of the quiz you want to fetch"
+						}
+					]
+				},
+				"description": "Gets the full quiz structure including questions and answers using the GetFullQuiz handler. Requires Auth. **Set the :quizId path variable to an existing quiz ID.**"
 			},
 			"response": []
 		}

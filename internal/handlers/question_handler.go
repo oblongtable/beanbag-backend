@@ -22,7 +22,7 @@ func NewQuestionHandler(questionService *services.QuestionService) *QuestionHand
 // @Tags questions
 // @Accept json
 // @Produce json
-// @Param question body CreateQuestionRequest true "Question details"
+// @Param question body QuestionApiModel true "Question details"
 // @Success 201 {object} db.Question
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
@@ -76,9 +76,9 @@ func (h *QuestionHandler) GetQuestion(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, question)
 }
 
-// CreateQuestionRequest represents the request body for creating a question.
+// QuestionApiModel represents the request body for creating a question.
 // @Description Question details
-type CreateQuestionRequest struct {
+type QuestionApiModel struct {
 	QuizID      int32  `json:"quiz_id" binding:"required"`
 	Description string `json:"description" binding:"required"`
 	TimerOption bool   `json:"timer_option"`
