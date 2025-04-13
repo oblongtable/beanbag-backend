@@ -13,6 +13,7 @@ import (
 	"github.com/oblongtable/beanbag-backend/db"
 	"github.com/oblongtable/beanbag-backend/initializers"
 	"github.com/oblongtable/beanbag-backend/internal/handlers"
+	"github.com/oblongtable/beanbag-backend/internal/seed"
 	"github.com/oblongtable/beanbag-backend/internal/services"
 	"github.com/oblongtable/beanbag-backend/middleware"
 	"github.com/oblongtable/beanbag-backend/websocket"
@@ -63,6 +64,15 @@ func init() {
 
 	// Make the queries available globally
 	DBQueries = queries
+
+	// --- Run Seeding ---
+	seedCtx := context.Background()
+	// Pass both db_conn and DBQueries to NewSeedData
+	seeder := seed.NewSeedData(db_conn, DBQueries)
+	if err := seeder.SeedDatabaseIfNeeded(seedCtx); err != nil {
+		log.Printf("! Database seeding failed: %v\n", err)
+	}
+	// --- Seeding Done ---
 
 	server = gin.Default()
 }
