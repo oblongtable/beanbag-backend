@@ -7,6 +7,7 @@ import (
 
 func SendEventCallback(c *Client, evtCbMsg *EventCallbackMessage) {
 	if strmsg, err := json.Marshal(evtCbMsg); err == nil {
+		log.Printf("marshaled: %s", strmsg)
 		c.Send <- strmsg
 	} else {
 		log.Printf("failed to marshal: %v", err)
