@@ -1,7 +1,9 @@
 package websocket
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -12,12 +14,14 @@ type ClientList map[*Client]bool
 
 type RoomList map[string]*Room
 
-type ClientRoomPair struct {
-	cli  *Client
-	room *Room
-}
+type EventHandler func(cliEvt *ClientEvent) error
 
 type EventHandlerList map[string]EventHandler
+
+type ClientEvent struct {
+	Requester *Client
+	EventInfo *Event
+}
 
 type WebSocServer struct {
 	Clients  ClientList
@@ -26,10 +30,10 @@ type WebSocServer struct {
 
 	Register       chan *Client
 	Unregister     chan *Client
-	RegisterRoom   chan *Room
+	RegisterRoom   chan *ClientEvent
 	UnregisterRoom chan *Room
-	JoinRoom       chan *ClientRoomPair
-	LeaveRoom      chan *ClientRoomPair
+	JoinRoom       chan *ClientEvent
+	LeaveRoom      chan *ClientEvent
 	// broadcast:  make(chan *Message, 5)
 	// Mu sync.RWMutex
 }
@@ -50,10 +54,10 @@ func NewWebSockServer() (wssvr *WebSocServer) {
 		Handlers:       make(EventHandlerList),
 		Register:       make(chan *Client),
 		Unregister:     make(chan *Client),
-		RegisterRoom:   make(chan *Room),
+		RegisterRoom:   make(chan *ClientEvent),
 		UnregisterRoom: make(chan *Room),
-		JoinRoom:       make(chan *ClientRoomPair),
-		LeaveRoom:      make(chan *ClientRoomPair),
+		JoinRoom:       make(chan *ClientEvent),
+		LeaveRoom:      make(chan *ClientEvent),
 	}
 	wssvr.SetupEventHandlers()
 	go wssvr.Run()
@@ -66,9 +70,13 @@ func (wssvr *WebSocServer) SetupEventHandlers() {
 	wssvr.Handlers[EventLeaveRoom] = LeaveRoomEventHandler
 }
 
-func (wssvr *WebSocServer) RouteEvent(evt Event, c *Client) error {
+func (wssvr *WebSocServer) RouteEvent(evt *Event, c *Client) error {
+	var cliEvt ClientEvent
+	cliEvt.Requester = c
+	cliEvt.EventInfo = evt
+
 	if handler, ok := wssvr.Handlers[evt.Type]; ok {
-		if err := handler(evt, c); err != nil {
+		if err := handler(&cliEvt); err != nil {
 			return err
 		}
 		return nil
@@ -78,8 +86,9 @@ func (wssvr *WebSocServer) RouteEvent(evt Event, c *Client) error {
 }
 
 func (wssvr *WebSocServer) AddClient(c *Client) {
+
 	wssvr.Clients[c] = true
-	NotifyClientsStatus(c, true)
+	// NotifyClientsStatus(c, true)
 }
 
 func (wssvr *WebSocServer) RemoveClient(c *Client) {
@@ -88,55 +97,165 @@ func (wssvr *WebSocServer) RemoveClient(c *Client) {
 	}
 
 	if room, ok := wssvr.Rooms[c.RoomID]; ok {
-		wssvr.RemoveRoom(room)
+		room.Leave <- c
 	}
 
 	delete(wssvr.Clients, c)
 	c.Conn.Close()
-	NotifyClientsStatus(c, false)
+	// NotifyClientsStatus(c, false)
 }
 
-func (wssvr *WebSocServer) AddRoom(room *Room) {
-	cli := room.Leader
-	cli.RoomID = room.ID
-	cli.Wssvr.Rooms[room.ID] = room
-	NotifyRoomsStatus(room, true)
+func (wssvr *WebSocServer) AddRoom(cliEvt *ClientEvent) {
+	var crevt CreateRoomEvent
+	var msg string
+	var roomInfo RoomInfo
+
+	cbMsg := NewEventCallbackMessage()
+	cbMsg.Type = MessageCreateRoom
+
+	isSuccess := true
+	cli := cliEvt.Requester
+	jsonRaw := cliEvt.EventInfo.Payload
+	if err := json.Unmarshal(jsonRaw, &crevt); err != nil {
+		isSuccess = false
+		msg = fmt.Sprintf("Create room failed: %v", err)
+		log.Println(msg)
+
+	} else if crevt.RoomSize > MAX_ROOM_SIZE {
+		isSuccess = false
+		msg = fmt.Sprintf("Create room failed: Room size cannot be larger than %d", MAX_ROOM_SIZE)
+		log.Println(msg)
+
+	} else {
+		room := NewRoom(crevt.RoomName, crevt.RoomSize, cli)
+		cli.RoomID = room.ID
+		cli.Wssvr.Rooms[room.ID] = room
+
+		roomInfo.ID = room.ID
+		roomInfo.Name = room.Name
+		roomInfo.Size = room.Size
+
+		msg = "Create room Success"
+		log.Println(msg)
+	}
+
+	// Message callback
+	if jsonBytes, err := json.Marshal(roomInfo); err != nil {
+		isSuccess = false
+		log.Println("Create room callback failed: Marshal failure")
+
+	} else if isSuccess {
+		cbMsg.Info = jsonBytes
+	}
+	cbMsg.IsSuccess = isSuccess
+	cbMsg.Message = msg
+
+	SendEventCallback(cli, cbMsg)
 }
 
 func (wssvr *WebSocServer) RemoveRoom(room *Room) {
-	cli := room.Leader
+	cli := room.Host
 	cli.RoomID = ""
 	delete(cli.Wssvr.Rooms, room.ID)
-	NotifyRoomsStatus(room, false)
 }
 
-func (wssvr *WebSocServer) JoinRoomF(crp *ClientRoomPair) {
-	cli := crp.cli
-	room := crp.room
+func (wssvr *WebSocServer) JoinRoomF(cliEvt *ClientEvent) {
+	var jrevt JoinRoomEvent
+	var msg string
+	var roomInfo RoomInfo
 
-	if _, ok := room.Clients[cli]; ok {
-		log.Printf("Join room failed: You are already in the room")
-		return
+	cbMsg := NewEventCallbackMessage()
+	cbMsg.Type = MessageJoinRoom
+
+	isSuccess := true
+	cli := cliEvt.Requester
+	jsonRaw := cliEvt.EventInfo.Payload
+	if err := json.Unmarshal(jsonRaw, &jrevt); err != nil {
+		isSuccess = false
+		msg = fmt.Sprintf("Join room failed: %v", err)
+		log.Println(msg)
+
+	} else if len(cli.RoomID) > 0 {
+		isSuccess = false
+		msg = "Join room failed: You have already joined a room"
+		log.Println(msg)
+
+	} else if room, ok := wssvr.Rooms[jrevt.RoomID]; !ok {
+		isSuccess = false
+		msg = "Join room failed: Room not found"
+		log.Println(msg)
+
 	} else if len(room.Clients) >= room.Size {
-		log.Printf("Join room failed: Room is full")
-		return
+		isSuccess = false
+		msg = "Join room failed: Room is full"
+		log.Println(msg)
+
+	} else {
+		msg = "Join room Success"
+		log.Println(msg)
+
+		room.Join <- cli
 	}
 
-	cli.RoomID = room.ID
-	room.Clients[cli] = true
+	// Message callback
+	if jsonBytes, err := json.Marshal(roomInfo); err != nil {
+		isSuccess = false
+		log.Println("Join room callback failed: Marshal failure")
+
+	} else if isSuccess {
+		cbMsg.Info = jsonBytes
+	}
+	cbMsg.IsSuccess = isSuccess
+	cbMsg.Message = msg
+
+	SendEventCallback(cli, cbMsg)
 }
 
-func (wssvr *WebSocServer) LeaveRoomF(crp *ClientRoomPair) {
-	cli := crp.cli
-	room := crp.room
+func (wssvr *WebSocServer) LeaveRoomF(cliEvt *ClientEvent) {
+	var jrevt JoinRoomEvent
+	var msg string
+	var roomInfo RoomInfo
 
-	if _, ok := room.Clients[cli]; !ok {
-		log.Printf("Leave room failed: You are not in the room")
-		return
+	cbMsg := NewEventCallbackMessage()
+	cbMsg.Type = MessageLeaveRoom
+
+	isSuccess := true
+	cli := cliEvt.Requester
+	jsonRaw := cliEvt.EventInfo.Payload
+	if err := json.Unmarshal(jsonRaw, &jrevt); err != nil {
+		isSuccess = false
+		msg = fmt.Sprintf("Leave room failed: %v", err)
+		log.Println(msg)
+
+	} else if len(cli.RoomID) < 1 {
+		isSuccess = false
+		msg = "Leave room failed: You haven't joined a room"
+		log.Println(msg)
+
+	} else if room, ok := wssvr.Rooms[jrevt.RoomID]; !ok {
+		isSuccess = false
+		msg = "Leave room failed: Room not found"
+		log.Println(msg)
+
+	} else {
+		msg = "Leave room Success"
+		log.Println(msg)
+
+		room.Leave <- cli
 	}
 
-	cli.RoomID = ""
-	room.Clients[cli] = false
+	// Message callback
+	if jsonBytes, err := json.Marshal(roomInfo); err != nil {
+		isSuccess = false
+		log.Println("Leave room callback failed: Marshal failure")
+
+	} else if isSuccess {
+		cbMsg.Info = jsonBytes
+	}
+	cbMsg.IsSuccess = isSuccess
+	cbMsg.Message = msg
+
+	SendEventCallback(cli, cbMsg)
 }
 
 func (wssvr *WebSocServer) Run() {
@@ -149,17 +268,17 @@ func (wssvr *WebSocServer) Run() {
 		case cli := <-wssvr.Unregister:
 			wssvr.RemoveClient(cli)
 
-		case room := <-wssvr.RegisterRoom:
-			wssvr.AddRoom(room)
+		case cliEvt := <-wssvr.RegisterRoom:
+			wssvr.AddRoom(cliEvt)
 
 		case room := <-wssvr.UnregisterRoom:
 			wssvr.RemoveRoom(room)
 
-		case crp := <-wssvr.JoinRoom:
-			wssvr.JoinRoomF(crp)
+		case cliEvt := <-wssvr.JoinRoom:
+			wssvr.JoinRoomF(cliEvt)
 
-		case crp := <-wssvr.LeaveRoom:
-			wssvr.LeaveRoomF(crp)
+		case cliEvt := <-wssvr.LeaveRoom:
+			wssvr.LeaveRoomF(cliEvt)
 		}
 	}
 }

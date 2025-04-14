@@ -4,23 +4,21 @@ import "encoding/json"
 
 type Event struct {
 	Type    string          `json:"type"`
-	Payload json.RawMessage `json:"payload"`
+	Payload json.RawMessage `json:"info"`
 }
 
 type CreateRoomEvent struct {
-	RoomName string
-	RoomSize int
+	RoomName string `json:"room_name"`
+	RoomSize int    `json:"room_size"`
 }
 
 type JoinRoomEvent struct {
-	RoomID string
+	RoomID string `json:"room_id"`
 }
 
 type LeaveRoomEvent struct {
-	RoomID string
+	RoomID string `json:"room_id"`
 }
-
-type EventHandler func(event Event, c *Client) error
 
 const (
 	// EventStatusUpdate = "notify_user_status"

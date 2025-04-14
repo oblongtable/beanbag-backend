@@ -84,7 +84,7 @@ func (c *Client) ReadMessage() {
 			log.Printf("error marshalling event: %v", err)
 			break
 		}
-		if err := c.Wssvr.RouteEvent(evt, c); err != nil {
+		if err := c.Wssvr.RouteEvent(&evt, c); err != nil {
 			log.Println("error handling message: ", err)
 			break
 		}
