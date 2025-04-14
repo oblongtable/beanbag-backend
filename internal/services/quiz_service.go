@@ -96,9 +96,11 @@ func (s *QuizService) GetFullQuiz(ctx context.Context, quizID int32) (*apimodels
 	}
 
 	creatorID := quiz.CreatorID.Int32
+	quizId := quiz.QuizID
 
 	fullQuiz := &apimodels.QuizApiModel{
 		Title:     quiz.QuizTitle,
+		QuizID:    quizId,
 		CreatorID: creatorID,
 		Questions: apiQuestions,
 	}

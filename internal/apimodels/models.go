@@ -14,6 +14,7 @@ type QuestionApiModel struct {
 
 type QuizApiModel struct {
 	Title     string             `json:"title" binding:"required"`
+	QuizID    int32              `json:"quiz_id"`
 	CreatorID int32              `json:"creator_id" binding:"required"`
 	Questions []QuestionApiModel `json:"questions"`
 }
