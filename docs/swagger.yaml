@@ -35,6 +35,8 @@ definitions:
         items:
           $ref: '#/definitions/apimodels.QuestionApiModel'
         type: array
+      quiz_id:
+        type: integer
       title:
         type: string
     required:

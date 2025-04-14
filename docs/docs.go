@@ -723,6 +723,9 @@ const docTemplate = `{
                         "$ref": "#/definitions/apimodels.QuestionApiModel"
                     }
                 },
+                "quiz_id": {
+                    "type": "integer"
+                },
                 "title": {
                     "type": "string"
                 }
