@@ -49,7 +49,7 @@ jobs:
           echo "tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
 
       - name: Build and push beanbag-backend DEV image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile.dev
