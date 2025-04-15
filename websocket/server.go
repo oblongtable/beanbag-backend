@@ -129,7 +129,7 @@ func (wssvr *WebSocServer) AddRoom(cliEvt *ClientEvent) {
 	} else {
 		room := NewRoom(crevt.RoomName, crevt.RoomSize, cli)
 		cli.RoomID = room.ID
-		cli.Wssvr.Rooms[room.ID] = room
+		cli.Wssvr.Rooms[room.ID] = room // Somehow ensure the ID added is always unique
 
 		roomInfo.ID = room.ID
 		roomInfo.Name = room.Name

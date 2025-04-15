@@ -3,16 +3,16 @@ package websocket
 import (
 	"fmt"
 	"log"
-
-	"github.com/google/uuid"
+	"math/rand"
+	"time"
 )
 
-const MAX_ROOM_SIZE = 8
+const MAX_ROOM_SIZE = 20
 
 type Room struct {
 	ID      string // UUID
 	Name    string // Customised
-	Size    int    // Min: 1, Max: 8
+	Size    int    // Min: 1, Max: 20
 	IsAlive bool
 	Host    *Client
 	Clients ClientList
@@ -27,7 +27,7 @@ func (r Room) String() string {
 
 func NewRoom(name string, size int, host *Client) (r *Room) {
 	r = &Room{
-		ID:      uuid.New().String(),
+		ID:      GenerateRandomCode(4),
 		Name:    name,
 		Size:    size,
 		Host:    host,
@@ -77,4 +77,20 @@ func (r *Room) Run() {
 		}
 	}
 	log.Printf("Room %s removed.", r.ID)
+}
+
+func GenerateRandomCode(length int) string {
+
+	const letterBytes = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+	source := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(source)
+	b := make([]byte, length)
+
+	for i := range b {
+		randomIndex := r.Intn(len(letterBytes))
+		b[i] = letterBytes[randomIndex]
+	}
+
+	return string(b)
 }
