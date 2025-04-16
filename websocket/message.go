@@ -13,15 +13,6 @@ type EventCallbackMessage struct {
 	Info      json.RawMessage `json:"info"`
 }
 
-func NewEventCallbackMessage() *EventCallbackMessage {
-	return &EventCallbackMessage{
-		BaseMessage: BaseMessage{},
-		IsSuccess:   true,
-		Message:     "",
-		Info:        nil,
-	}
-}
-
 type UserInfoMessage struct {
 	BaseMessage
 	User UserInfo `json:"user"`
@@ -37,11 +28,6 @@ type UserStatusMessages struct {
 	Users []*UserInfo
 }
 
-type RoomInfoMessage struct {
-	BaseMessage
-	Room RoomInfo
-}
-
 type RoomInfo struct {
 	ID        string      `json:"room_id"`
 	Name      string      `json:"room_name"`
@@ -51,13 +37,14 @@ type RoomInfo struct {
 
 type RoomInfoMessages struct {
 	BaseMessage
-	Rooms []*RoomInfo
+	Rooms []*RoomInfo `json:"rooms_info"`
+}
+
+type Serialisable interface {
+	RoomInfo | UserInfo | EventCallbackMessage
 }
 
 const (
-	// MessageStatusUpdateUserAll = "status_update_user_all"
-	// MessageStatusUpdateRoomAll = "status_update_room_all"
-	// MessageStatusUpdateUser = "status_update_user"
 	MessageRoomStatusUpdate = "room_status_update"
 
 	MessageUserJoinRoomUpdate  = "user_join_room_update"

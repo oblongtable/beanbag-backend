@@ -1,7 +1,6 @@
 package test
 
 import (
-	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -82,15 +81,11 @@ func TestUserCreateRoom(t *testing.T) {
 
 	var evtCbMsg mywebsoc.EventCallbackMessage
 
-	if msg_type, b64Stream, err2 := client.ReadMessage(); err2 != nil {
+	if msg_type, data, err2 := client.ReadMessage(); err2 != nil {
 		t.Errorf("Message read failed: %v", err2)
 	} else {
-		fmt.Printf("%v %v %s\n", msg_type, b64Stream, string(b64Stream))
-
-		decoded, _ := b64.URLEncoding.DecodeString(string(b64Stream)[1 : len(b64Stream)-1])
-
-		fmt.Printf("Decoded: %v\n", decoded)
-		err = json.Unmarshal(decoded, &evtCbMsg)
+		fmt.Printf("%v %v %s\n", msg_type, data, string(data))
+		err = json.Unmarshal(data, &evtCbMsg)
 		if err != nil {
 			t.Errorf("Unmarshal failed: %v", err)
 		}
