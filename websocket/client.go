@@ -99,17 +99,14 @@ func (c *Client) WriteMessage() {
 	ticker := time.NewTicker(pingInterval)
 	for {
 		select {
-		case message, ok := <-c.Send:
+		case data, ok := <-c.Send:
 			if !ok {
 				if err := c.Conn.WriteMessage(websocket.CloseMessage, nil); err != nil {
 					log.Println("connection closed")
 				}
 				return
 			}
-			data, err := json.Marshal(message)
-			if err != nil {
-				log.Println(err)
-			}
+
 			if err := c.Conn.WriteMessage(websocket.TextMessage, data); err != nil {
 				log.Printf("failed to send message: %v", err)
 			}

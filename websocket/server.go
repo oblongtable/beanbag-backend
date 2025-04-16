@@ -110,47 +110,39 @@ func (wssvr *WebSocServer) AddRoom(cliEvt *ClientEvent) {
 	var msg string
 	var roomInfo RoomInfo
 
-	cbMsg := NewEventCallbackMessage()
-	cbMsg.Type = MessageCreateRoom
-
-	isSuccess := true
+	isSuccess := false
 	cli := cliEvt.Requester
 	jsonRaw := cliEvt.EventInfo.Payload
 	if err := json.Unmarshal(jsonRaw, &crevt); err != nil {
-		isSuccess = false
 		msg = fmt.Sprintf("Create room failed: %v", err)
 		log.Println(msg)
 
 	} else if crevt.RoomSize > MAX_ROOM_SIZE {
-		isSuccess = false
 		msg = fmt.Sprintf("Create room failed: Room size cannot be larger than %d", MAX_ROOM_SIZE)
 		log.Println(msg)
 
 	} else {
 		room := NewRoom(crevt.RoomName, crevt.RoomSize, cli)
-		cli.RoomID = room.ID
-		cli.Wssvr.Rooms[room.ID] = room // Somehow ensure the ID added is always unique
+		if room == nil {
+			msg = "Create room failed: Server overloaded, please try again later."
+		} else {
+			isSuccess = true
 
-		roomInfo.ID = room.ID
-		roomInfo.Name = room.Name
-		roomInfo.Size = room.Size
+			cli.RoomID = room.ID
+			cli.Wssvr.Rooms[room.ID] = room
 
-		msg = "Create room Success"
-		log.Println(msg)
+			roomInfo.ID = room.ID
+			roomInfo.Name = room.Name
+			roomInfo.Size = room.Size
+			roomInfo.UsersInfo = make([]*UserInfo, 0)
+
+			msg = "Create room Success"
+			log.Println(msg)
+		}
 	}
 
 	// Message callback
-	if jsonBytes, err := json.Marshal(roomInfo); err != nil {
-		isSuccess = false
-		log.Println("Create room callback failed: Marshal failure")
-
-	} else if isSuccess {
-		cbMsg.Info = jsonBytes
-	}
-	cbMsg.IsSuccess = isSuccess
-	cbMsg.Message = msg
-
-	SendEventCallback(cli, cbMsg)
+	SendEventCallback(cli, MessageCreateRoom, isSuccess, msg, &roomInfo)
 }
 
 func (wssvr *WebSocServer) RemoveRoom(room *Room) {
@@ -163,9 +155,6 @@ func (wssvr *WebSocServer) JoinRoomF(cliEvt *ClientEvent) {
 	var jrevt JoinRoomEvent
 	var msg string
 	var roomInfo RoomInfo
-
-	cbMsg := NewEventCallbackMessage()
-	cbMsg.Type = MessageJoinRoom
 
 	isSuccess := true
 	cli := cliEvt.Requester
@@ -198,26 +187,13 @@ func (wssvr *WebSocServer) JoinRoomF(cliEvt *ClientEvent) {
 	}
 
 	// Message callback
-	if jsonBytes, err := json.Marshal(roomInfo); err != nil {
-		isSuccess = false
-		log.Println("Join room callback failed: Marshal failure")
-
-	} else if isSuccess {
-		cbMsg.Info = jsonBytes
-	}
-	cbMsg.IsSuccess = isSuccess
-	cbMsg.Message = msg
-
-	SendEventCallback(cli, cbMsg)
+	SendEventCallback(cli, MessageJoinRoom, isSuccess, msg, &roomInfo)
 }
 
 func (wssvr *WebSocServer) LeaveRoomF(cliEvt *ClientEvent) {
 	var jrevt JoinRoomEvent
 	var msg string
 	var roomInfo RoomInfo
-
-	cbMsg := NewEventCallbackMessage()
-	cbMsg.Type = MessageLeaveRoom
 
 	isSuccess := true
 	cli := cliEvt.Requester
@@ -245,17 +221,7 @@ func (wssvr *WebSocServer) LeaveRoomF(cliEvt *ClientEvent) {
 	}
 
 	// Message callback
-	if jsonBytes, err := json.Marshal(roomInfo); err != nil {
-		isSuccess = false
-		log.Println("Leave room callback failed: Marshal failure")
-
-	} else if isSuccess {
-		cbMsg.Info = jsonBytes
-	}
-	cbMsg.IsSuccess = isSuccess
-	cbMsg.Message = msg
-
-	SendEventCallback(cli, cbMsg)
+	SendEventCallback(cli, MessageLeaveRoom, isSuccess, msg, &roomInfo)
 }
 
 func (wssvr *WebSocServer) Run() {

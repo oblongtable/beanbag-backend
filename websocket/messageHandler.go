@@ -5,12 +5,41 @@ import (
 	"log"
 )
 
-func SendEventCallback(c *Client, evtCbMsg *EventCallbackMessage) {
+func NewEventCallbackMessage() *EventCallbackMessage {
+	return &EventCallbackMessage{
+		BaseMessage: BaseMessage{},
+		IsSuccess:   true,
+		Message:     "",
+		Info:        nil,
+	}
+}
+
+func SendEventCallback[S Serialisable](c *Client, msg_type string, isSuccess bool, msg string, ser *S) {
+	evtCbMsg := &EventCallbackMessage{
+		BaseMessage: BaseMessage{msg_type},
+		IsSuccess:   isSuccess,
+		Message:     msg,
+		Info:        nil,
+	}
+
+	// Serialise Info
+	if isSuccess {
+		if jsonBytes, err := json.Marshal(ser); err != nil {
+			isSuccess = false
+			log.Printf("SendEventCallback: Failed to marshal message (%v)\n", err)
+			return
+
+		} else {
+			evtCbMsg.Info = jsonBytes
+		}
+	}
+
+	// Serialise callback message and send it
 	if strmsg, err := json.Marshal(evtCbMsg); err == nil {
-		log.Printf("marshaled: %s", strmsg)
+		log.Printf("Marshaled: %s", strmsg)
 		c.Send <- strmsg
 	} else {
-		log.Printf("failed to marshal: %v", err)
+		log.Printf("Failed to marshal: %v", err)
 	}
 }
 
@@ -18,7 +47,7 @@ func NotifyUserRoomStatus(r *Room, c *Client) error {
 	var msgs RoomInfoMessages
 	msgs.Type = MessageRoomStatusUpdate
 
-	roomInfo := RoomInfo{
+	roomInfo := &RoomInfo{
 		ID:        r.ID,
 		Name:      r.Name,
 		Size:      r.Size,
@@ -48,7 +77,7 @@ func NotifyUserRoomUpdate(r *Room, c *Client, msg_type string) error {
 	msg.User.ID = r.ID
 	msg.User.Username = r.Name
 
-	if strmsg, err := json.Marshal(msg); err == nil {
+	if strmsg, err := json.Marshal(&msg); err == nil {
 		for cli := range r.Clients {
 			if cli == c {
 				continue

@@ -35,6 +35,22 @@ func NewRoom(name string, size int, host *Client) (r *Room) {
 		Join:    make(chan *Client),
 		Leave:   make(chan *Client),
 	}
+
+	// Re-generate room ID if already exist such ID for 5 times
+	exist := true
+	for i := 0; i < 5; i++ {
+		if _, ok := host.Wssvr.Rooms[r.ID]; !ok {
+			exist = false
+			break
+		}
+		r.ID = GenerateRandomCode(4)
+	}
+
+	// Return NULL pointer if it still fails to generate unique code
+	if exist {
+		return nil
+	}
+
 	go r.Run()
 	return r
 }
@@ -81,15 +97,15 @@ func (r *Room) Run() {
 
 func GenerateRandomCode(length int) string {
 
-	const letterBytes = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	const asciiBytes = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
 
 	source := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(source)
 	b := make([]byte, length)
 
 	for i := range b {
-		randomIndex := r.Intn(len(letterBytes))
-		b[i] = letterBytes[randomIndex]
+		randomIndex := r.Intn(len(asciiBytes))
+		b[i] = asciiBytes[randomIndex]
 	}
 
 	return string(b)

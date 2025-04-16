@@ -1,16 +1,5 @@
 package websocket
 
-/*
-@Expected JSON:
-
-	{
-		"event":<EVENT_TYPE>,
-		"payload":{
-			"RoomName": <ROOM_NAME>,
-			"RoomSize": <MAX_NUM_USERS>
-		}
-	}
-*/
 func CreateRoomEventHandler(cliEvt *ClientEvent) error {
 	cliEvt.Requester.Wssvr.RegisterRoom <- cliEvt
 	return nil
