@@ -14,6 +14,7 @@ type CreateRoomEvent struct {
 
 type JoinRoomEvent struct {
 	RoomID string `json:"room_id"`
+	Name   string `json:"name"`
 }
 
 type LeaveRoomEvent struct {

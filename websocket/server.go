@@ -122,6 +122,7 @@ func (wssvr *WebSocServer) AddRoom(cliEvt *ClientEvent) {
 		log.Println(msg)
 
 	} else {
+		cli.Username = "Host"
 		room := NewRoom(crevt.RoomName, crevt.RoomSize, cli)
 		if room == nil {
 			msg = "Create room failed: Server overloaded, please try again later."
@@ -180,10 +181,35 @@ func (wssvr *WebSocServer) JoinRoomF(cliEvt *ClientEvent) {
 		log.Println(msg)
 
 	} else {
+		cli.Username = jrevt.Name
+
 		msg = "Join room Success"
 		log.Println(msg)
 
+		roomInfo.ID = room.ID
+		roomInfo.Name = room.Name
+		roomInfo.Size = room.Size
+
+		var userInfo []*UserInfo
+
+		// Populate with players already in the lobby
+		for roomCli := range room.Clients {
+			log.Println("Room client: ", roomCli.String())
+			userInfo = append(userInfo, &UserInfo{
+				ID:       roomCli.ID,
+				Username: roomCli.Username,
+			})
+		}
+
+		// Add myself in
+		userInfo = append(userInfo, &UserInfo{
+			ID:       cli.ID,
+			Username: cli.Username,
+		})
+		roomInfo.UsersInfo = userInfo
+
 		room.Join <- cli
+
 	}
 
 	// Message callback
@@ -191,7 +217,7 @@ func (wssvr *WebSocServer) JoinRoomF(cliEvt *ClientEvent) {
 }
 
 func (wssvr *WebSocServer) LeaveRoomF(cliEvt *ClientEvent) {
-	var jrevt JoinRoomEvent
+	var jrevt LeaveRoomEvent
 	var msg string
 	var roomInfo RoomInfo
 
