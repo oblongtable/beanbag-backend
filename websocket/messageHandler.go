@@ -43,15 +43,16 @@ func SendEventCallback[S Serialisable](c *Client, msg_type string, isSuccess boo
 	}
 }
 
-func NotifyUserRoomStatus(r *Room, c *Client) error {
+func NotifyUserRoomStatus(r *Room, c *Client, msg_type string) error {
 	var msgs RoomInfoMessages
 	msgs.Type = MessageRoomStatusUpdate
 
 	roomInfo := &RoomInfo{
-		ID:        r.ID,
-		Name:      r.Name,
-		Size:      r.Size,
-		UsersInfo: make([]*UserInfo, 1),
+		BaseMessage: BaseMessage{msg_type},
+		ID:          r.ID,
+		Name:        r.Name,
+		Size:        r.Size,
+		UsersInfo:   make([]*UserInfo, 0),
 	}
 
 	for cli := range r.Clients {
@@ -63,6 +64,7 @@ func NotifyUserRoomStatus(r *Room, c *Client) error {
 	}
 
 	if strmsg, err := json.Marshal(roomInfo); err == nil {
+		log.Printf("Sending room status update: %s", strmsg)
 		c.Send <- strmsg
 	} else {
 		log.Printf("Failed to marshal: %v", err)

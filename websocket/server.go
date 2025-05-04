@@ -194,7 +194,6 @@ func (wssvr *WebSocServer) JoinRoomF(cliEvt *ClientEvent) {
 
 		// Populate with players already in the lobby
 		for roomCli := range room.Clients {
-			log.Println("Room client: ", roomCli.String())
 			userInfo = append(userInfo, &UserInfo{
 				ID:       roomCli.ID,
 				Username: roomCli.Username,

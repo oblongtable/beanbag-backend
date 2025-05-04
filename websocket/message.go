@@ -29,6 +29,7 @@ type UserStatusMessages struct {
 }
 
 type RoomInfo struct {
+	BaseMessage
 	ID        string      `json:"room_id"`
 	Name      string      `json:"room_name"`
 	Size      int         `json:"room_size"`

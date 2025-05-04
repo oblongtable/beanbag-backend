@@ -60,7 +60,15 @@ func (r *Room) JoinRoom(c *Client) {
 	r.Clients[c] = true
 
 	NotifyUserRoomUpdate(r, c, MessageJoinRoom)
-	NotifyUserRoomStatus(r, c)
+
+	// Notify all clients in the room of the new user
+	NotifyUserRoomStatus(r, r.Host, MessageRoomStatusUpdate)
+	for client := range r.Clients {
+		if client != c {
+			log.Printf("Notify %s of new user %s", client.Username, c.Username)
+			NotifyUserRoomStatus(r, c, MessageRoomStatusUpdate)
+		}
+	}
 }
 
 func (r *Room) LeaveRoom(c *Client) {
