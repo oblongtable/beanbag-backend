@@ -15,10 +15,8 @@ import (
 	"github.com/oblongtable/beanbag-backend/internal/handlers"
 	"github.com/oblongtable/beanbag-backend/internal/seed"
 	"github.com/oblongtable/beanbag-backend/internal/services"
-	"github.com/oblongtable/beanbag-backend/middleware"
 	"github.com/oblongtable/beanbag-backend/websocket"
 
-	adaptor "github.com/gwatts/gin-adapter"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
@@ -134,8 +132,8 @@ func main() {
 	// API routes
 	api := router.Group("/api")
 	{
-		api.Use(adaptor.Wrap(middleware.VerifyToken()))
-		api.Use(middleware.ExtractAndSetClaims())
+		// api.Use(adaptor.Wrap(middleware.VerifyToken()))
+		// api.Use(middleware.ExtractAndSetClaims())
 
 		// User routes
 		api.POST("/users", userHandler.CreateUser)

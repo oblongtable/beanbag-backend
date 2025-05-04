@@ -44,15 +44,13 @@ func SendEventCallback[S Serialisable](c *Client, msg_type string, isSuccess boo
 }
 
 func NotifyUserRoomStatus(r *Room, c *Client, msg_type string) error {
-	var msgs RoomInfoMessages
-	msgs.Type = MessageRoomStatusUpdate
-
 	roomInfo := &RoomInfo{
 		BaseMessage: BaseMessage{msg_type},
 		ID:          r.ID,
 		Name:        r.Name,
 		Size:        r.Size,
 		UsersInfo:   make([]*UserInfo, 0),
+		HostID:      r.Host.ID, // Populate HostID
 	}
 
 	for cli := range r.Clients {

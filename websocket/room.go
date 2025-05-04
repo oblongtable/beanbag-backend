@@ -31,10 +31,13 @@ func NewRoom(name string, size int, host *Client) (r *Room) {
 		Name:    name,
 		Size:    size,
 		Host:    host,
-		Clients: make(ClientList, size),
+		Clients: make(ClientList, size), // Initialize the map
 		Join:    make(chan *Client),
 		Leave:   make(chan *Client),
 	}
+
+	// Add the host to the clients list immediately
+	r.Clients[host] = true
 
 	// Re-generate room ID if already exist such ID for 5 times
 	exist := true
@@ -59,15 +62,10 @@ func (r *Room) JoinRoom(c *Client) {
 	c.RoomID = r.ID
 	r.Clients[c] = true
 
-	NotifyUserRoomUpdate(r, c, MessageJoinRoom)
-
-	// Notify all clients in the room of the new user
-	NotifyUserRoomStatus(r, r.Host, MessageRoomStatusUpdate)
+	// Notify all clients in the room of the updated user list
 	for client := range r.Clients {
-		if client != c {
-			log.Printf("Notify %s of new user %s", client.Username, c.Username)
-			NotifyUserRoomStatus(r, c, MessageRoomStatusUpdate)
-		}
+		log.Printf("Notify %s of room status update", client.Username)
+		NotifyUserRoomStatus(r, client, MessageRoomStatusUpdate)
 	}
 }
 
@@ -79,7 +77,6 @@ func (r *Room) LeaveRoom(c *Client) {
 	if c == r.Host {
 		r.IsAlive = false
 	} else {
-		NotifyUserRoomUpdate(r, c, MessageLeaveRoom)
 	}
 }
 
