@@ -77,6 +77,11 @@ func (r *Room) LeaveRoom(c *Client) {
 	if c == r.Host {
 		r.IsAlive = false
 	} else {
+		// Notify all clients in the room of the updated user list
+		for client := range r.Clients {
+			log.Printf("Notify %s of room status update", client.Username)
+			NotifyUserRoomStatus(r, client, MessageRoomStatusUpdate)
+		}
 	}
 }
 

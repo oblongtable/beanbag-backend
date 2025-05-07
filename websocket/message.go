@@ -35,6 +35,7 @@ type RoomInfo struct {
 	Size      int         `json:"room_size"`
 	UsersInfo []*UserInfo `json:"users_info"`
 	HostID    string      `json:"host_id"` // Add HostID field
+	SenderID  string      `json:"user_id"` // Add UserId field
 }
 
 type RoomInfoMessages struct {

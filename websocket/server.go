@@ -136,6 +136,12 @@ func (wssvr *WebSocServer) AddRoom(cliEvt *ClientEvent) {
 			roomInfo.Name = room.Name
 			roomInfo.Size = room.Size
 			roomInfo.UsersInfo = make([]*UserInfo, 0)
+			roomInfo.UsersInfo = append(roomInfo.UsersInfo, &UserInfo{
+				ID:       cli.ID,
+				Username: cli.Username,
+			})
+			roomInfo.HostID = cli.ID
+			roomInfo.SenderID = cli.ID
 
 			msg = "Create room Success"
 			log.Println(msg)
@@ -206,6 +212,8 @@ func (wssvr *WebSocServer) JoinRoomF(cliEvt *ClientEvent) {
 			Username: cli.Username,
 		})
 		roomInfo.UsersInfo = userInfo
+		roomInfo.HostID = room.Host.ID
+		roomInfo.SenderID = cli.ID
 
 		room.Join <- cli
 

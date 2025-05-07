@@ -51,6 +51,7 @@ func NotifyUserRoomStatus(r *Room, c *Client, msg_type string) error {
 		Size:        r.Size,
 		UsersInfo:   make([]*UserInfo, 0),
 		HostID:      r.Host.ID, // Populate HostID
+		SenderID:    c.ID,
 	}
 
 	for cli := range r.Clients {
