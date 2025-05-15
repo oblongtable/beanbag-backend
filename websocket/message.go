@@ -19,8 +19,8 @@ type UserInfoMessage struct {
 }
 
 type UserInfo struct {
-	ID       string `json:"user_id"`
-	Username string `json:"user_name"`
+	ID           string `json:"user_id"`
+	Username     string `json:"user_name"`
 }
 
 type UserStatusMessages struct {

@@ -10,6 +10,7 @@ type Event struct {
 type CreateRoomEvent struct {
 	RoomName string `json:"room_name"`
 	RoomSize int    `json:"room_size"`
+	UserName string `json:"username"`
 }
 
 type JoinRoomEvent struct {

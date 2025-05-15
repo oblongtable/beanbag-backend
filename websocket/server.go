@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type ClientList map[*Client]bool
+type ClientList map[*Client]int64
 
 type RoomList map[string]*Room
 
@@ -87,8 +87,7 @@ func (wssvr *WebSocServer) RouteEvent(evt *Event, c *Client) error {
 
 func (wssvr *WebSocServer) AddClient(c *Client) {
 
-	wssvr.Clients[c] = true
-	// NotifyClientsStatus(c, true)
+	wssvr.Clients[c] = -1
 }
 
 func (wssvr *WebSocServer) RemoveClient(c *Client) {
@@ -102,7 +101,6 @@ func (wssvr *WebSocServer) RemoveClient(c *Client) {
 
 	delete(wssvr.Clients, c)
 	c.Conn.Close()
-	// NotifyClientsStatus(c, false)
 }
 
 func (wssvr *WebSocServer) AddRoom(cliEvt *ClientEvent) {
@@ -122,7 +120,7 @@ func (wssvr *WebSocServer) AddRoom(cliEvt *ClientEvent) {
 		log.Println(msg)
 
 	} else {
-		cli.Username = "Host"
+		cli.Username = crevt.UserName
 		room := NewRoom(crevt.RoomName, crevt.RoomSize, cli)
 		if room == nil {
 			msg = "Create room failed: Server overloaded, please try again later."
@@ -181,7 +179,7 @@ func (wssvr *WebSocServer) JoinRoomF(cliEvt *ClientEvent) {
 		msg = "Join room failed: Room not found"
 		log.Println(msg)
 
-	} else if len(room.Clients) >= room.Size {
+	} else if len(room.Clients) >= room.Size+1 {
 		isSuccess = false
 		msg = "Join room failed: Room is full"
 		log.Println(msg)

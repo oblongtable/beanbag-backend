@@ -31,13 +31,13 @@ func NewRoom(name string, size int, host *Client) (r *Room) {
 		Name:    name,
 		Size:    size,
 		Host:    host,
-		Clients: make(ClientList, size), // Initialize the map
+		Clients: make(ClientList, size+1),
 		Join:    make(chan *Client),
 		Leave:   make(chan *Client),
 	}
 
 	// Add the host to the clients list immediately
-	r.Clients[host] = true
+	r.Clients[host] = time.Now().UnixMilli()
 
 	// Re-generate room ID if already exist such ID for 5 times
 	exist := true
@@ -60,7 +60,7 @@ func NewRoom(name string, size int, host *Client) (r *Room) {
 
 func (r *Room) JoinRoom(c *Client) {
 	c.RoomID = r.ID
-	r.Clients[c] = true
+	r.Clients[c] = time.Now().UnixMilli()
 
 	// Notify all clients in the room of the updated user list
 	for client := range r.Clients {

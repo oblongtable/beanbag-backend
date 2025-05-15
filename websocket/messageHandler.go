@@ -3,6 +3,7 @@ package websocket
 import (
 	"encoding/json"
 	"log"
+	"sort"
 )
 
 func NewEventCallbackMessage() *EventCallbackMessage {
@@ -54,10 +55,26 @@ func NotifyUserRoomStatus(r *Room, c *Client, msg_type string) error {
 		SenderID:    c.ID,
 	}
 
-	for cli := range r.Clients {
+	// Create a slice of client-timestamp pairs
+	type clientTimestamp struct {
+		Client    *Client
+		Timestamp int64 // Assuming timestamp is int64 based on common usage in Go maps
+	}
+	var clientsWithTimestamps []clientTimestamp
+	for cli, ts := range r.Clients {
+		clientsWithTimestamps = append(clientsWithTimestamps, clientTimestamp{Client: cli, Timestamp: ts})
+	}
+
+	// Sort the slice by timestamp
+	sort.SliceStable(clientsWithTimestamps, func(i, j int) bool {
+		return clientsWithTimestamps[i].Timestamp < clientsWithTimestamps[j].Timestamp
+	})
+
+	// Build the UsersInfo list from the sorted slice
+	for _, ct := range clientsWithTimestamps {
 		userInfo := &UserInfo{
-			ID:       cli.ID,
-			Username: cli.Username,
+			ID:       ct.Client.ID,
+			Username: ct.Client.Username,
 		}
 		roomInfo.UsersInfo = append(roomInfo.UsersInfo, userInfo)
 	}
