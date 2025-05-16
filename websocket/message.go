@@ -21,6 +21,7 @@ type UserInfoMessage struct {
 type UserInfo struct {
 	ID           string `json:"user_id"`
 	Username     string `json:"user_name"`
+	Role		 string `json:"role"`
 }
 
 type UserStatusMessages struct {
@@ -34,8 +35,7 @@ type RoomInfo struct {
 	Name      string      `json:"room_name"`
 	Size      int         `json:"room_size"`
 	UsersInfo []*UserInfo `json:"users_info"`
-	HostID    string      `json:"host_id"` // Add HostID field
-	SenderID  string      `json:"user_id"` // Add UserId field
+	SenderID  string      `json:"user_id"`
 }
 
 type RoomInfoMessages struct {

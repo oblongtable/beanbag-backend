@@ -4,45 +4,59 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"sort"
+	"sync"
 	"time"
 )
 
 const MAX_ROOM_SIZE = 20
 
+type ParticipantsDetail struct {
+	client   *Client
+	role     Role
+	joinedAt time.Time
+}
+
 type Room struct {
-	ID      string // UUID
-	Name    string // Customised
-	Size    int    // Min: 1, Max: 20
-	IsAlive bool
-	Host    *Client
-	Clients ClientList
-	Join    chan *Client
-	Leave   chan *Client
+	ID           string // UUID
+	Name         string // Customised
+	Size         int    // Min: 1, Max: 20
+	IsAlive      bool
+	Creator      *Client
+	Participants map[string]ParticipantsDetail
+	Join         chan *Client
+	Leave        chan *Client
+	mu           sync.Mutex
 }
 
-func (r Room) String() string {
-	return fmt.Sprintf("Room {ID:\"%s\", Name:\"%s\", Size:%d, Host:%s, Clients:%v}",
-		r.ID, r.Name, r.Size, r.Host, r.Clients)
+func (r *Room) String() string {
+	return fmt.Sprintf("Room {ID:\"%s\", Name:\"%s\", Size:%d, Creator:%s, Participants:%v}",
+		r.ID, r.Name, r.Size, r.Creator, r.Participants)
 }
 
-func NewRoom(name string, size int, host *Client) (r *Room) {
+func NewRoom(name string, size int, creator *Client) (r *Room) {
 	r = &Room{
-		ID:      GenerateRandomCode(4),
-		Name:    name,
-		Size:    size,
-		Host:    host,
-		Clients: make(ClientList, size+1),
-		Join:    make(chan *Client),
-		Leave:   make(chan *Client),
+		ID:           GenerateRandomCode(4),
+		Name:         name,
+		Size:         size,
+		Creator:      creator,
+		Participants: make(map[string]ParticipantsDetail),
+		Join:         make(chan *Client),
+		Leave:        make(chan *Client),
+		mu:           sync.Mutex{},
 	}
 
 	// Add the host to the clients list immediately
-	r.Clients[host] = time.Now().UnixMilli()
+	r.Participants[creator.ID] = ParticipantsDetail{
+		client:   creator,
+		role:     RoleCreator,
+		joinedAt: time.Now(),
+	}
 
 	// Re-generate room ID if already exist such ID for 5 times
 	exist := true
-	for i := 0; i < 5; i++ {
-		if _, ok := host.Wssvr.Rooms[r.ID]; !ok {
+	for range 5 {
+		if _, ok := creator.Wssvr.Rooms[r.ID]; !ok {
 			exist = false
 			break
 		}
@@ -59,35 +73,66 @@ func NewRoom(name string, size int, host *Client) (r *Room) {
 }
 
 func (r *Room) JoinRoom(c *Client) {
+
+	r.mu.Lock()
+
 	c.RoomID = r.ID
-	r.Clients[c] = time.Now().UnixMilli()
+
+	// Only the creator is in the room so I am the host
+	if len(r.Participants) == 1 {
+
+		r.Participants[c.ID] = ParticipantsDetail{
+			client:   c,
+			role:     RoleHost,
+			joinedAt: time.Now(),
+		}
+
+	} else {
+
+		r.Participants[c.ID] = ParticipantsDetail{
+			client:   c,
+			role:     RolePlayer,
+			joinedAt: time.Now(),
+		}
+
+	}
+
+	r.mu.Unlock()
 
 	// Notify all clients in the room of the updated user list
-	for client := range r.Clients {
-		log.Printf("Notify %s of room status update", client.Username)
-		NotifyUserRoomStatus(r, client, MessageRoomStatusUpdate)
+	log.Printf("Length of participants: %d", len(r.Participants))
+	for id, pd := range r.Participants {
+		log.Printf("Notify %s (%s) of room status update", pd.client.Username, id)
+		NotifyUserRoomStatus(r, pd.client, r.GetSortedUserInfo(), MessageRoomStatusUpdate)
 	}
 }
 
 func (r *Room) LeaveRoom(c *Client) {
+	r.mu.Lock()
+
 	c.RoomID = ""
-	delete(r.Clients, c)
+	delete(r.Participants, c.ID)
+
+	r.mu.Unlock()
 
 	// Check if user is the room host
-	if c == r.Host {
+	if c == r.Creator {
 		r.IsAlive = false
+
+		// Notify that the room has died
+
 	} else {
 		// Notify all clients in the room of the updated user list
-		for client := range r.Clients {
-			log.Printf("Notify %s of room status update", client.Username)
-			NotifyUserRoomStatus(r, client, MessageRoomStatusUpdate)
+		for id, pd := range r.Participants {
+			log.Printf("Notify %s (%s) of room status update", pd.client.Username, id)
+			NotifyUserRoomStatus(r, pd.client, r.GetSortedUserInfo(), MessageRoomStatusUpdate)
 		}
 	}
 }
 
 func (r *Room) Run() {
 	defer func() {
-		r.Host.Wssvr.UnregisterRoom <- r
+		r.Creator.Wssvr.UnregisterRoom <- r
 	}()
 
 	r.IsAlive = true
@@ -103,6 +148,39 @@ func (r *Room) Run() {
 		}
 	}
 	log.Printf("Room %s removed.", r.ID)
+}
+
+func (r *Room) ParticipantCount() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	count := len(r.Participants)
+	return count
+}
+
+func (r *Room) GetSortedUserInfo() []*UserInfo {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	var clients []ParticipantsDetail
+	for _, pd := range r.Participants {
+		clients = append(clients, pd)
+	}
+
+	sort.Slice(clients, func(i, j int) bool {
+		return clients[i].joinedAt.Before(clients[j].joinedAt)
+	})
+
+	userInfo := make([]*UserInfo, 0)
+	for _, pd := range clients {
+		userInfo = append(userInfo, &UserInfo{
+			ID:       pd.client.ID,
+			Username: pd.client.Username,
+			Role:     pd.role.String(),
+		})
+	}
+
+	return userInfo
 }
 
 func GenerateRandomCode(length int) string {

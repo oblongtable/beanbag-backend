@@ -3,7 +3,6 @@ package websocket
 import (
 	"encoding/json"
 	"log"
-	"sort"
 )
 
 func NewEventCallbackMessage() *EventCallbackMessage {
@@ -44,39 +43,14 @@ func SendEventCallback[S Serialisable](c *Client, msg_type string, isSuccess boo
 	}
 }
 
-func NotifyUserRoomStatus(r *Room, c *Client, msg_type string) error {
+func NotifyUserRoomStatus(r *Room, c *Client, userInfo []*UserInfo, msg_type string) error {
 	roomInfo := &RoomInfo{
 		BaseMessage: BaseMessage{msg_type},
 		ID:          r.ID,
 		Name:        r.Name,
 		Size:        r.Size,
-		UsersInfo:   make([]*UserInfo, 0),
-		HostID:      r.Host.ID, // Populate HostID
+		UsersInfo:   userInfo,
 		SenderID:    c.ID,
-	}
-
-	// Create a slice of client-timestamp pairs
-	type clientTimestamp struct {
-		Client    *Client
-		Timestamp int64 // Assuming timestamp is int64 based on common usage in Go maps
-	}
-	var clientsWithTimestamps []clientTimestamp
-	for cli, ts := range r.Clients {
-		clientsWithTimestamps = append(clientsWithTimestamps, clientTimestamp{Client: cli, Timestamp: ts})
-	}
-
-	// Sort the slice by timestamp
-	sort.SliceStable(clientsWithTimestamps, func(i, j int) bool {
-		return clientsWithTimestamps[i].Timestamp < clientsWithTimestamps[j].Timestamp
-	})
-
-	// Build the UsersInfo list from the sorted slice
-	for _, ct := range clientsWithTimestamps {
-		userInfo := &UserInfo{
-			ID:       ct.Client.ID,
-			Username: ct.Client.Username,
-		}
-		roomInfo.UsersInfo = append(roomInfo.UsersInfo, userInfo)
 	}
 
 	if strmsg, err := json.Marshal(roomInfo); err == nil {
@@ -96,11 +70,11 @@ func NotifyUserRoomUpdate(r *Room, c *Client, msg_type string) error {
 	msg.User.Username = r.Name
 
 	if strmsg, err := json.Marshal(&msg); err == nil {
-		for cli := range r.Clients {
-			if cli == c {
+		for _, pd := range r.Participants {
+			if pd.client == c {
 				continue
 			}
-			cli.Send <- strmsg
+			pd.client.Send <- strmsg
 		}
 	} else {
 		log.Printf("Failed to marshal: %v", err)

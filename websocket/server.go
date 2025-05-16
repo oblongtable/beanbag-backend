@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type ClientList map[*Client]int64
+type ClientList map[*Client]bool
 
 type RoomList map[string]*Room
 
@@ -87,7 +87,7 @@ func (wssvr *WebSocServer) RouteEvent(evt *Event, c *Client) error {
 
 func (wssvr *WebSocServer) AddClient(c *Client) {
 
-	wssvr.Clients[c] = -1
+	wssvr.Clients[c] = true
 }
 
 func (wssvr *WebSocServer) RemoveClient(c *Client) {
@@ -137,8 +137,8 @@ func (wssvr *WebSocServer) AddRoom(cliEvt *ClientEvent) {
 			roomInfo.UsersInfo = append(roomInfo.UsersInfo, &UserInfo{
 				ID:       cli.ID,
 				Username: cli.Username,
+				Role:     RoleCreator.String(),
 			})
-			roomInfo.HostID = cli.ID
 			roomInfo.SenderID = cli.ID
 
 			msg = "Create room Success"
@@ -151,7 +151,7 @@ func (wssvr *WebSocServer) AddRoom(cliEvt *ClientEvent) {
 }
 
 func (wssvr *WebSocServer) RemoveRoom(room *Room) {
-	cli := room.Host
+	cli := room.Creator
 	cli.RoomID = ""
 	delete(cli.Wssvr.Rooms, room.ID)
 }
@@ -179,7 +179,7 @@ func (wssvr *WebSocServer) JoinRoomF(cliEvt *ClientEvent) {
 		msg = "Join room failed: Room not found"
 		log.Println(msg)
 
-	} else if len(room.Clients) >= room.Size+1 {
+	} else if len(room.Participants) >= room.Size+1 {
 		isSuccess = false
 		msg = "Join room failed: Room is full"
 		log.Println(msg)
@@ -193,25 +193,22 @@ func (wssvr *WebSocServer) JoinRoomF(cliEvt *ClientEvent) {
 		roomInfo.ID = room.ID
 		roomInfo.Name = room.Name
 		roomInfo.Size = room.Size
+		roomInfo.UsersInfo = room.GetSortedUserInfo()
+		roomInfo.SenderID = cli.ID
 
-		var userInfo []*UserInfo
-
-		// Populate with players already in the lobby
-		for roomCli := range room.Clients {
-			userInfo = append(userInfo, &UserInfo{
-				ID:       roomCli.ID,
-				Username: roomCli.Username,
-			})
+		// Add myself to user info
+		var clientRole Role
+		if (room.ParticipantCount()) == 1 {
+			clientRole = RoleHost
+		} else {
+			clientRole = RolePlayer
 		}
 
-		// Add myself in
-		userInfo = append(userInfo, &UserInfo{
+		roomInfo.UsersInfo = append(roomInfo.UsersInfo, &UserInfo{
 			ID:       cli.ID,
 			Username: cli.Username,
+			Role:     clientRole.String(),
 		})
-		roomInfo.UsersInfo = userInfo
-		roomInfo.HostID = room.Host.ID
-		roomInfo.SenderID = cli.ID
 
 		room.Join <- cli
 
