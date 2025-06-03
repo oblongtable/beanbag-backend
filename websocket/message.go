@@ -56,4 +56,5 @@ const (
 	MessageCreateRoom = "create_room_callback"
 	MessageJoinRoom   = "join_room_callback"
 	MessageLeaveRoom  = "leave_room_callback"
+	MessageRoomShutdown = "room_shutdown"
 )

@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
@@ -110,21 +111,94 @@ func (r *Room) JoinRoom(c *Client) {
 func (r *Room) LeaveRoom(c *Client) {
 	r.mu.Lock()
 
+	leavingParticipantDetail, exists := r.Participants[c.ID]
+	log.Printf(" %s", c.ID)
+	isLeavingHost := false
+	log.Printf("Participant %s (%s) is leaving room %s %s", c.Username, c.ID, r.ID, leavingParticipantDetail.role)
+	if exists && leavingParticipantDetail.role == RoleHost {
+		isLeavingHost = true
+	}
+
 	c.RoomID = ""
 	delete(r.Participants, c.ID)
 
 	r.mu.Unlock()
 
-	// Check if user is the room host
+	// If the leaving participant is the creator, shut down the room
 	if c == r.Creator {
 		r.IsAlive = false
+		// Notify all clients in the room that the room is shutting down
+		shutdownMessage := BaseMessage{Type: MessageRoomShutdown}
+		message, _ := json.Marshal(shutdownMessage)
+		for _, pd := range r.Participants {
+			log.Printf("Notify %s (%s) of room closure", pd.client.Username, pd.client.ID)
+			select {
+			case pd.client.Send <- message:
+			default:
+				close(pd.client.Send)
+				// It's safe to delete here as the loop is finishing for this participant
+				delete(r.Participants, pd.client.ID)
+			}
+		}
+	} else if isLeavingHost { // If the leaving participant is the host (and not the creator)
+		// If there are other participants (besides the creator), transfer host role
+		if len(r.Participants) > 0 {
+			var nextHostID string
+			var earliestJoinTime time.Time
 
-		// Notify that the room has died
+			// Initialize with a time far in the future
+			earliestJoinTime = time.Now().Add(24 * time.Hour)
 
-	} else {
+			for id, pd := range r.Participants {
+				// Exclude the leaving host and the creator
+				if pd.client.ID != c.ID && pd.client.ID != r.Creator.ID {
+					if pd.joinedAt.Before(earliestJoinTime) {
+						earliestJoinTime = pd.joinedAt
+						nextHostID = id
+					}
+				}
+			}
+
+			if nextHostID != "" {
+				// Assign the host role to the next participant
+				pd := r.Participants[nextHostID]
+				pd.role = RoleHost
+				r.Participants[nextHostID] = pd
+
+				log.Printf("Host role transferred to %s (%s) in room %s", pd.client.Username, nextHostID, r.ID)
+
+				// Notify all remaining clients of the updated user list and role change
+				for _, pd := range r.Participants {
+					log.Printf("Notify %s (%s) of room status update with new host", pd.client.Username, pd.client.ID)
+					NotifyUserRoomStatus(r, pd.client, r.GetSortedUserInfo(), MessageRoomStatusUpdate)
+				}
+			} else {
+				// No other participants besides the creator, room stays open, notify creator
+				log.Printf("Host left, no other participants to transfer role to. Notifying creator %s (%s) in room %s", r.Creator.Username, r.Creator.ID, r.ID)
+				NotifyUserRoomStatus(r, r.Creator, r.GetSortedUserInfo(), MessageRoomStatusUpdate)
+			}
+		} else {
+			// Should not happen if the creator is still in the room, but as a fallback
+			// No other participants, shut down the room
+			r.IsAlive = false
+			// Notify all clients in the room that the room is shutting down
+			shutdownMessage := BaseMessage{Type: MessageRoomShutdown}
+			message, _ := json.Marshal(shutdownMessage)
+			for _, pd := range r.Participants {
+				log.Printf("Notify %s (%s) of room closure", pd.client.Username, pd.client.ID)
+				select {
+				case pd.client.Send <- message:
+				default:
+					close(pd.client.Send)
+					// It's safe to delete here as the loop is finishing for this participant
+					delete(r.Participants, pd.client.ID)
+				}
+			}
+		}
+	} else { // User is not the creator and not the host, just remove them and notify others of updated user list
 		// Notify all clients in the room of the updated user list
-		for id, pd := range r.Participants {
-			log.Printf("Notify %s (%s) of room status update", pd.client.Username, id)
+		for _, pd := range r.Participants {
+			log.Printf("Notify %s (%s) of room status update", pd.client.Username, pd.client.ID)
 			NotifyUserRoomStatus(r, pd.client, r.GetSortedUserInfo(), MessageRoomStatusUpdate)
 		}
 	}
