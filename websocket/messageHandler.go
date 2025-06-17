@@ -51,6 +51,7 @@ func NotifyUserRoomStatus(r *Room, c *Client, userInfo []*UserInfo, msg_type str
 		Size:        r.Size,
 		UsersInfo:   userInfo,
 		SenderID:    c.ID,
+		IsHost:      c.ID == r.Host.ID, // Set IsHost based on recipient client
 	}
 
 	if strmsg, err := json.Marshal(roomInfo); err == nil {
@@ -66,15 +67,14 @@ func NotifyUserRoomStatus(r *Room, c *Client, userInfo []*UserInfo, msg_type str
 func NotifyUserRoomUpdate(r *Room, c *Client, msg_type string) error {
 	var msg UserInfoMessage
 	msg.Type = msg_type
-	msg.User.ID = r.ID
 	msg.User.Username = r.Name
 
 	if strmsg, err := json.Marshal(&msg); err == nil {
 		for _, pd := range r.Participants {
-			if pd.client == c {
+			if pd.Client == c {
 				continue
 			}
-			pd.client.Send <- strmsg
+			pd.Client.Send <- strmsg
 		}
 	} else {
 		log.Printf("Failed to marshal: %v", err)

@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/websocket"
+	"github.com/oblongtable/beanbag-backend/internal/game"
 )
 
 type ClientList map[*Client]bool
@@ -27,6 +28,7 @@ type WebSocServer struct {
 	Clients  ClientList
 	Rooms    RoomList
 	Handlers EventHandlerList
+	Games    *game.GameService // Add GameService
 
 	Register       chan *Client
 	Unregister     chan *Client
@@ -34,6 +36,8 @@ type WebSocServer struct {
 	UnregisterRoom chan *Room
 	JoinRoom       chan *ClientEvent
 	LeaveRoom      chan *ClientEvent
+
+	StartQuiz chan *ClientEvent
 	// broadcast:  make(chan *Message, 5)
 	// Mu sync.RWMutex
 }
@@ -52,12 +56,15 @@ func NewWebSockServer() (wssvr *WebSocServer) {
 		Clients:        make(ClientList),
 		Rooms:          make(RoomList),
 		Handlers:       make(EventHandlerList),
+		Games:          game.NewService(), // Initialize GameService
 		Register:       make(chan *Client),
 		Unregister:     make(chan *Client),
 		RegisterRoom:   make(chan *ClientEvent),
 		UnregisterRoom: make(chan *Room),
 		JoinRoom:       make(chan *ClientEvent),
 		LeaveRoom:      make(chan *ClientEvent),
+
+		StartQuiz: make(chan *ClientEvent),
 	}
 	wssvr.SetupEventHandlers()
 	go wssvr.Run()
@@ -68,6 +75,7 @@ func (wssvr *WebSocServer) SetupEventHandlers() {
 	wssvr.Handlers[EventCreateRoom] = CreateRoomEventHandler
 	wssvr.Handlers[EventJoinRoom] = JoinRoomEventHandler
 	wssvr.Handlers[EventLeaveRoom] = LeaveRoomEventHandler
+	wssvr.Handlers[EventStartQuiz] = StartQuizEventHandler
 }
 
 func (wssvr *WebSocServer) RouteEvent(evt *Event, c *Client) error {
@@ -135,7 +143,6 @@ func (wssvr *WebSocServer) AddRoom(cliEvt *ClientEvent) {
 			roomInfo.Size = room.Size
 			roomInfo.UsersInfo = make([]*UserInfo, 0)
 			roomInfo.UsersInfo = append(roomInfo.UsersInfo, &UserInfo{
-				ID:       cli.ID,
 				Username: cli.Username,
 				Role:     RoleCreator.String(),
 			})
@@ -205,7 +212,6 @@ func (wssvr *WebSocServer) JoinRoomF(cliEvt *ClientEvent) {
 		}
 
 		roomInfo.UsersInfo = append(roomInfo.UsersInfo, &UserInfo{
-			ID:       cli.ID,
 			Username: cli.Username,
 			Role:     clientRole.String(),
 		})
@@ -252,6 +258,87 @@ func (wssvr *WebSocServer) LeaveRoomF(cliEvt *ClientEvent) {
 	SendEventCallback(cli, MessageLeaveRoom, isSuccess, msg, &roomInfo)
 }
 
+func (wssvr *WebSocServer) StartQuizF(cliEvt *ClientEvent) {
+	var jrevt StartQuizEvent
+	var msg string
+
+	isSuccess := true
+	cli := cliEvt.Requester
+	jsonRaw := cliEvt.EventInfo.Payload
+	if err := json.Unmarshal(jsonRaw, &jrevt); err != nil {
+		isSuccess = false
+		msg = fmt.Sprintf("Start Quiz failed: %v", err)
+		log.Println(msg)
+
+	} else {
+		log.Println("Start Quiz Event received")
+		log.Println(msg)
+		room, ok := wssvr.Rooms[cli.RoomID]
+		if !ok {
+			isSuccess = false
+			msg = "Start Quiz failed: Room not found"
+			log.Println(msg)
+		}
+		if room.Host.ID != cli.ID {
+			isSuccess = false
+			msg = "Start Quiz failed: Only the room creator can start the quiz"
+			log.Println(msg)
+		} else {
+			// Define the broadcast function for this specific room
+			broadcastFunc := func(msgType string, payload interface{}) {
+				evt := &Event{
+					Type: msgType,
+				}
+
+				jsonPayload, err := json.Marshal(payload)
+				if err != nil {
+					log.Printf("Error marshaling broadcast payload for type %s: %v", msgType, err)
+					return
+				}
+				evt.Payload = jsonPayload
+
+				strmsg, err := json.Marshal(evt)
+				if err != nil {
+					log.Printf("Error marshaling broadcast event for type %s: %v", msgType, err)
+					return
+				}
+
+				for _, participant := range room.Participants {
+					select {
+					case participant.Client.Send <- strmsg:
+						// Message sent successfully
+					default:
+						log.Printf("Failed to send message to client %s in room %s", participant.Client.ID, room.ID)
+					}
+				}
+			}
+
+			// Call CreateGame here, passing the broadcast function
+			game, err := wssvr.Games.CreateGame(room.ID, room.Creator.ID, room.Host.ID, "./quizzes/example.json", broadcastFunc)
+			if err != nil {
+				isSuccess = false
+				msg = fmt.Sprintf("Start Quiz failed: Failed to create game: %v", err)
+				log.Println(msg)
+			} else {
+
+				SendEventCallback(cli, MessageQuizStart, isSuccess, msg, &RoomInfo{})
+
+				// Call StartGame here
+				err = wssvr.Games.StartGame(game.ID, room.Host.ID)
+				if err != nil {
+					isSuccess = false
+					msg = fmt.Sprintf("Start Quiz failed: Failed to start game: %v", err)
+					log.Println(msg)
+				} else {
+					msg = "Start Quiz Success"
+					log.Println(msg)
+				}
+			}
+		}
+
+	}
+}
+
 func (wssvr *WebSocServer) Run() {
 	for {
 		select {
@@ -273,6 +360,9 @@ func (wssvr *WebSocServer) Run() {
 
 		case cliEvt := <-wssvr.LeaveRoom:
 			wssvr.LeaveRoomF(cliEvt)
+
+		case cliEvt := <-wssvr.StartQuiz:
+			wssvr.StartQuizF(cliEvt)
 		}
 	}
 }

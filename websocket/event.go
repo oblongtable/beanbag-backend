@@ -22,11 +22,15 @@ type LeaveRoomEvent struct {
 	RoomID string `json:"room_id"`
 }
 
+type StartQuizEvent struct {
+	RoomID string `json:"room_id"`
+}
+
 const (
 	// EventStatusUpdate = "notify_user_status"
 	// EventSendMessage    = "send_message"
 	EventCreateRoom = "create_room"
 	EventJoinRoom   = "join_room"
 	EventLeaveRoom  = "leave_room"
-	// EventStartQuiz      = "start_quiz"
+	EventStartQuiz  = "start_quiz"
 )

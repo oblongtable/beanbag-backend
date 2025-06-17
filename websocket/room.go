@@ -13,8 +13,8 @@ import (
 const MAX_ROOM_SIZE = 20
 
 type ParticipantsDetail struct {
-	client   *Client
-	role     Role
+	Client   *Client
+	Role     Role
 	joinedAt time.Time
 }
 
@@ -24,6 +24,7 @@ type Room struct {
 	Size         int    // Min: 1, Max: 20
 	IsAlive      bool
 	Creator      *Client
+	Host         *Client
 	Participants map[string]ParticipantsDetail
 	Join         chan *Client
 	Leave        chan *Client
@@ -49,8 +50,8 @@ func NewRoom(name string, size int, creator *Client) (r *Room) {
 
 	// Add the host to the clients list immediately
 	r.Participants[creator.ID] = ParticipantsDetail{
-		client:   creator,
-		role:     RoleCreator,
+		Client:   creator,
+		Role:     RoleCreator,
 		joinedAt: time.Now(),
 	}
 
@@ -82,17 +83,18 @@ func (r *Room) JoinRoom(c *Client) {
 	// Only the creator is in the room so I am the host
 	if len(r.Participants) == 1 {
 
+		r.Host = c
 		r.Participants[c.ID] = ParticipantsDetail{
-			client:   c,
-			role:     RoleHost,
+			Client:   c,
+			Role:     RoleHost,
 			joinedAt: time.Now(),
 		}
 
 	} else {
 
 		r.Participants[c.ID] = ParticipantsDetail{
-			client:   c,
-			role:     RolePlayer,
+			Client:   c,
+			Role:     RolePlayer,
 			joinedAt: time.Now(),
 		}
 
@@ -103,8 +105,8 @@ func (r *Room) JoinRoom(c *Client) {
 	// Notify all clients in the room of the updated user list
 	log.Printf("Length of participants: %d", len(r.Participants))
 	for id, pd := range r.Participants {
-		log.Printf("Notify %s (%s) of room status update", pd.client.Username, id)
-		NotifyUserRoomStatus(r, pd.client, r.GetSortedUserInfo(), MessageRoomStatusUpdate)
+		log.Printf("Notify %s (%s) of room status update", pd.Client.Username, id)
+		NotifyUserRoomStatus(r, pd.Client, r.GetSortedUserInfo(), MessageRoomStatusUpdate)
 	}
 }
 
@@ -114,8 +116,8 @@ func (r *Room) LeaveRoom(c *Client) {
 	leavingParticipantDetail, exists := r.Participants[c.ID]
 	log.Printf(" %s", c.ID)
 	isLeavingHost := false
-	log.Printf("Participant %s (%s) is leaving room %s %s", c.Username, c.ID, r.ID, leavingParticipantDetail.role)
-	if exists && leavingParticipantDetail.role == RoleHost {
+	log.Printf("Participant %s (%s) is leaving room %s %s", c.Username, c.ID, r.ID, leavingParticipantDetail.Role)
+	if exists && leavingParticipantDetail.Role == RoleHost {
 		isLeavingHost = true
 	}
 
@@ -131,13 +133,13 @@ func (r *Room) LeaveRoom(c *Client) {
 		shutdownMessage := BaseMessage{Type: MessageRoomShutdown}
 		message, _ := json.Marshal(shutdownMessage)
 		for _, pd := range r.Participants {
-			log.Printf("Notify %s (%s) of room closure", pd.client.Username, pd.client.ID)
+			log.Printf("Notify %s (%s) of room closure", pd.Client.Username, pd.Client.ID)
 			select {
-			case pd.client.Send <- message:
+			case pd.Client.Send <- message:
 			default:
-				close(pd.client.Send)
+				close(pd.Client.Send)
 				// It's safe to delete here as the loop is finishing for this participant
-				delete(r.Participants, pd.client.ID)
+				delete(r.Participants, pd.Client.ID)
 			}
 		}
 	} else if isLeavingHost { // If the leaving participant is the host (and not the creator)
@@ -151,7 +153,7 @@ func (r *Room) LeaveRoom(c *Client) {
 
 			for id, pd := range r.Participants {
 				// Exclude the leaving host and the creator
-				if pd.client.ID != c.ID && pd.client.ID != r.Creator.ID {
+				if pd.Client.ID != c.ID && pd.Client.ID != r.Creator.ID {
 					if pd.joinedAt.Before(earliestJoinTime) {
 						earliestJoinTime = pd.joinedAt
 						nextHostID = id
@@ -162,15 +164,16 @@ func (r *Room) LeaveRoom(c *Client) {
 			if nextHostID != "" {
 				// Assign the host role to the next participant
 				pd := r.Participants[nextHostID]
-				pd.role = RoleHost
+				pd.Role = RoleHost
 				r.Participants[nextHostID] = pd
+				r.Host = pd.Client
 
-				log.Printf("Host role transferred to %s (%s) in room %s", pd.client.Username, nextHostID, r.ID)
+				log.Printf("Host role transferred to %s (%s) in room %s", pd.Client.Username, nextHostID, r.ID)
 
 				// Notify all remaining clients of the updated user list and role change
 				for _, pd := range r.Participants {
-					log.Printf("Notify %s (%s) of room status update with new host", pd.client.Username, pd.client.ID)
-					NotifyUserRoomStatus(r, pd.client, r.GetSortedUserInfo(), MessageRoomStatusUpdate)
+					log.Printf("Notify %s (%s) of room status update with new host", pd.Client.Username, pd.Client.ID)
+					NotifyUserRoomStatus(r, pd.Client, r.GetSortedUserInfo(), MessageRoomStatusUpdate)
 				}
 			} else {
 				// No other participants besides the creator, room stays open, notify creator
@@ -185,21 +188,21 @@ func (r *Room) LeaveRoom(c *Client) {
 			shutdownMessage := BaseMessage{Type: MessageRoomShutdown}
 			message, _ := json.Marshal(shutdownMessage)
 			for _, pd := range r.Participants {
-				log.Printf("Notify %s (%s) of room closure", pd.client.Username, pd.client.ID)
+				log.Printf("Notify %s (%s) of room closure", pd.Client.Username, pd.Client.ID)
 				select {
-				case pd.client.Send <- message:
+				case pd.Client.Send <- message:
 				default:
-					close(pd.client.Send)
+					close(pd.Client.Send)
 					// It's safe to delete here as the loop is finishing for this participant
-					delete(r.Participants, pd.client.ID)
+					delete(r.Participants, pd.Client.ID)
 				}
 			}
 		}
 	} else { // User is not the creator and not the host, just remove them and notify others of updated user list
 		// Notify all clients in the room of the updated user list
 		for _, pd := range r.Participants {
-			log.Printf("Notify %s (%s) of room status update", pd.client.Username, pd.client.ID)
-			NotifyUserRoomStatus(r, pd.client, r.GetSortedUserInfo(), MessageRoomStatusUpdate)
+			log.Printf("Notify %s (%s) of room status update", pd.Client.Username, pd.Client.ID)
+			NotifyUserRoomStatus(r, pd.Client, r.GetSortedUserInfo(), MessageRoomStatusUpdate)
 		}
 	}
 }
@@ -248,9 +251,8 @@ func (r *Room) GetSortedUserInfo() []*UserInfo {
 	userInfo := make([]*UserInfo, 0)
 	for _, pd := range clients {
 		userInfo = append(userInfo, &UserInfo{
-			ID:       pd.client.ID,
-			Username: pd.client.Username,
-			Role:     pd.role.String(),
+			Username: pd.Client.Username,
+			Role:     pd.Role.String(),
 		})
 	}
 
@@ -271,4 +273,8 @@ func GenerateRandomCode(length int) string {
 	}
 
 	return string(b)
+}
+
+func Broadcast(message []byte) {
+
 }

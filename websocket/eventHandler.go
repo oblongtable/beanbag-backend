@@ -14,3 +14,9 @@ func LeaveRoomEventHandler(cliEvt *ClientEvent) error {
 	cliEvt.Requester.Wssvr.LeaveRoom <- cliEvt
 	return nil
 }
+
+func StartQuizEventHandler(cliEvt *ClientEvent) error {
+	cliEvt.Requester.Wssvr.StartQuiz<- cliEvt
+	return nil
+}
+

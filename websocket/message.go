@@ -19,9 +19,8 @@ type UserInfoMessage struct {
 }
 
 type UserInfo struct {
-	ID           string `json:"user_id"`
-	Username     string `json:"user_name"`
-	Role		 string `json:"role"`
+	Username string `json:"user_name"`
+	Role     string `json:"role"`
 }
 
 type UserStatusMessages struct {
@@ -36,6 +35,7 @@ type RoomInfo struct {
 	Size      int         `json:"room_size"`
 	UsersInfo []*UserInfo `json:"users_info"`
 	SenderID  string      `json:"user_id"`
+	IsHost    bool        `json:"is_host"` // Add IsHost field
 }
 
 type RoomInfoMessages struct {
@@ -53,8 +53,10 @@ const (
 	MessageUserJoinRoomUpdate  = "user_join_room_update"
 	MessageUserLeaveRoomUpdate = "user_leave_room_update"
 
-	MessageCreateRoom = "create_room_callback"
-	MessageJoinRoom   = "join_room_callback"
-	MessageLeaveRoom  = "leave_room_callback"
+	MessageCreateRoom   = "create_room_callback"
+	MessageJoinRoom     = "join_room_callback"
+	MessageLeaveRoom    = "leave_room_callback"
 	MessageRoomShutdown = "room_shutdown"
+
+	MessageQuizStart = "quiz_start_callback"
 )
