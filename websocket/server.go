@@ -314,7 +314,7 @@ func (wssvr *WebSocServer) StartQuizF(cliEvt *ClientEvent) {
 			}
 
 			// Call CreateGame here, passing the broadcast function
-			game, err := wssvr.Games.CreateGame(room.ID, room.Creator.ID, room.Host.ID, "./quizzes/example.json", broadcastFunc)
+			game, err := wssvr.Games.CreateGame(room.ID, room.Creator.ID, room.Host.ID, broadcastFunc)
 			if err != nil {
 				isSuccess = false
 				msg = fmt.Sprintf("Start Quiz failed: Failed to create game: %v", err)
