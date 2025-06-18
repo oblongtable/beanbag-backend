@@ -19,8 +19,10 @@ type UserInfoMessage struct {
 }
 
 type UserInfo struct {
-	Username string `json:"user_name"`
-	Role     string `json:"role"`
+	Username    string `json:"user_name"`
+	UserLobbyId int    `json:"user_lobby_id"`
+	Role        string `json:"role"`
+	UserID      string `json:"user_id"` // Add UserID
 }
 
 type UserStatusMessages struct {
@@ -44,7 +46,7 @@ type RoomInfoMessages struct {
 }
 
 type Serialisable interface {
-	RoomInfo | UserInfo | EventCallbackMessage
+	RoomInfo | UserInfo | EventCallbackMessage | BaseMessage // Include BaseMessage
 }
 
 const (
@@ -58,5 +60,7 @@ const (
 	MessageLeaveRoom    = "leave_room_callback"
 	MessageRoomShutdown = "room_shutdown"
 
-	MessageQuizStart = "quiz_start_callback"
+	MessageQuizStart   = "quiz_start_callback"
+	MessageQuizForward = "quiz_forward_callback" // New message type for quiz forward callback
+	MessageSubmitAnswer = "submit_answer_callback"
 )

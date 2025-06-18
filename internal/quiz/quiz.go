@@ -8,7 +8,6 @@ import (
 
 // Question represents a single question in the quiz, matching the JSON structure.
 type Question struct {
-	ID                 int      `json:"id"`
 	QuestionText       string   `json:"questionText"`
 	Options            []string `json:"options"`
 	CorrectOptionIndex int      `json:"correctOptionIndex"`
@@ -17,11 +16,18 @@ type Question struct {
 	Explanation        string   `json:"explanation"`
 }
 
+// Section represents a section of questions within the quiz.
+type Section struct {
+	Section   string     `json:"section"`
+	Type      string     `json:"type"`
+	Questions []Question `json:"questions"`
+}
+
 // Quiz represents the entire quiz structure.
 type Quiz struct {
-	Title       string     `json:"title"`
-	Description string     `json:"description"`
-	Questions   []Question `json:"questions"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	Sections    []Section `json:"sections"`
 }
 
 // LoadQuizFromFile reads a quiz from a JSON file on disk.

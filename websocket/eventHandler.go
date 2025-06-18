@@ -20,3 +20,12 @@ func StartQuizEventHandler(cliEvt *ClientEvent) error {
 	return nil
 }
 
+func ForwardQuizEventHandler(cliEvt *ClientEvent) error {
+	cliEvt.Requester.Wssvr.ForwardQuiz <- cliEvt
+	return nil
+}
+
+func SubmitAnswerEventHandler(cliEvt *ClientEvent) error {
+	cliEvt.Requester.Wssvr.SubmitAnswer <- cliEvt
+	return nil
+}

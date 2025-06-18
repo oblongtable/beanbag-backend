@@ -13,22 +13,24 @@ import (
 const MAX_ROOM_SIZE = 20
 
 type ParticipantsDetail struct {
-	Client   *Client
-	Role     Role
-	joinedAt time.Time
+	Client      *Client
+	Role        Role
+	joinedAt    time.Time
+	UserLobbyId int // Add UserLobbyId to ParticipantsDetail
 }
 
 type Room struct {
 	ID           string // UUID
 	Name         string // Customised
-	Size         int    // Min: 1, Max: 20
-	IsAlive      bool
-	Creator      *Client
-	Host         *Client
-	Participants map[string]ParticipantsDetail
-	Join         chan *Client
-	Leave        chan *Client
-	mu           sync.Mutex
+	Size            int    // Min: 1, Max: 20
+	IsAlive         bool
+	Creator         *Client
+	Host            *Client
+	Participants    map[string]ParticipantsDetail
+	Join            chan *Client
+	Leave           chan *Client
+	mu              sync.Mutex
+	nextUserLobbyId int // New field to assign unique sequential UserLobbyIds
 }
 
 func (r *Room) String() string {
@@ -38,21 +40,23 @@ func (r *Room) String() string {
 
 func NewRoom(name string, size int, creator *Client) (r *Room) {
 	r = &Room{
-		ID:           GenerateRandomCode(4),
-		Name:         name,
-		Size:         size,
-		Creator:      creator,
-		Participants: make(map[string]ParticipantsDetail),
-		Join:         make(chan *Client),
-		Leave:        make(chan *Client),
-		mu:           sync.Mutex{},
+		ID:              GenerateRandomCode(4),
+		Name:            name,
+		Size:            size,
+		Creator:         creator,
+		Participants:    make(map[string]ParticipantsDetail),
+		Join:            make(chan *Client),
+		Leave:           make(chan *Client),
+		mu:              sync.Mutex{},
+		nextUserLobbyId: 1, // Initialize to 1, as creator gets 0
 	}
 
 	// Add the host to the clients list immediately
 	r.Participants[creator.ID] = ParticipantsDetail{
-		Client:   creator,
-		Role:     RoleCreator,
-		joinedAt: time.Now(),
+		Client:      creator,
+		Role:        RoleCreator,
+		joinedAt:    time.Now(),
+		UserLobbyId: 0, // Assign UserLobbyId 0 to the creator
 	}
 
 	// Re-generate room ID if already exist such ID for 5 times
@@ -81,21 +85,27 @@ func (r *Room) JoinRoom(c *Client) {
 	c.RoomID = r.ID
 
 	// Only the creator is in the room so I am the host
-	if len(r.Participants) == 1 {
+	userLobbyId := r.nextUserLobbyId // Assign UserLobbyId from the counter
+	r.nextUserLobbyId++              // Increment the counter for the next user
+
+	// Only the creator is in the room so I am the host
+	if len(r.Participants) == 1 { // This means the creator is already there, and this is the second person
 
 		r.Host = c
 		r.Participants[c.ID] = ParticipantsDetail{
-			Client:   c,
-			Role:     RoleHost,
-			joinedAt: time.Now(),
+			Client:      c,
+			Role:        RoleHost,
+			joinedAt:    time.Now(),
+			UserLobbyId: userLobbyId, // Assign the calculated UserLobbyId
 		}
 
 	} else {
 
 		r.Participants[c.ID] = ParticipantsDetail{
-			Client:   c,
-			Role:     RolePlayer,
-			joinedAt: time.Now(),
+			Client:      c,
+			Role:        RolePlayer,
+			joinedAt:    time.Now(),
+			UserLobbyId: userLobbyId, // Assign the calculated UserLobbyId
 		}
 
 	}
@@ -251,8 +261,9 @@ func (r *Room) GetSortedUserInfo() []*UserInfo {
 	userInfo := make([]*UserInfo, 0)
 	for _, pd := range clients {
 		userInfo = append(userInfo, &UserInfo{
-			Username: pd.Client.Username,
-			Role:     pd.Role.String(),
+			Username:    pd.Client.Username,
+			Role:        pd.Role.String(),
+			UserLobbyId: pd.UserLobbyId, // Include UserLobbyId
 		})
 	}
 

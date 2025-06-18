@@ -1,90 +1,103 @@
 {
   "title": "General Knowledge Challenge",
   "description": "A fun quiz to test your knowledge on a variety of topics!",
-  "questions": [
+  "sections": [
     {
       "id": 1,
-      "questionText": "What is the capital city of Australia?",
-      "options": [
-        "Sydney",
-        "Melbourne",
-        "Canberra",
-        "Perth"
-      ],
-      "correctOptionIndex": 2,
-      "timeLimit": 20,
-      "points": 100,
-      "explanation": "While Sydney is the largest city, Canberra has been the capital of Australia since 1927."
+      "section": "General Knowledge",
+      "type": "multiple-choice",
+      "questions": [
+        {
+          "id": 1,
+          "questionText": "What is the capital city of Australia?",
+          "options": [
+            "Sydney",
+            "Melbourne",
+            "Canberra",
+            "Perth"
+          ],
+          "correctOptionIndex": 2,
+          "timeLimit": 20,
+          "points": 100,
+          "explanation": "While Sydney is the largest city, Canberra has been the capital of Australia since 1927."
+        },
+        {
+          "id": 2,
+          "questionText": "Which planet is known as the 'Red Planet'?",
+          "options": [
+            "Venus",
+            "Mars",
+            "Jupiter",
+            "Saturn"
+          ],
+          "correctOptionIndex": 1,
+          "timeLimit": 20,
+          "points": 100,
+          "explanation": "Mars is often called the 'Red Planet' because of the iron oxide prevalent on its surface, which gives it a reddish appearance."
+        },
+        {
+          "id": 3,
+          "questionText": "What is the largest ocean on Earth?",
+          "options": [
+            "Atlantic Ocean",
+            "Indian Ocean",
+            "Arctic Ocean",
+            "Pacific Ocean"
+          ],
+          "correctOptionIndex": 3,
+          "timeLimit": 20,
+          "points": 100,
+          "explanation": "The Pacific Ocean is the largest and deepest of the world's five oceans, covering more than 30% of the Earth's surface."
+        },
+        {
+          "id": 4,
+          "questionText": "Who wrote the famous play 'Romeo and Juliet'?",
+          "options": [
+            "William Shakespeare",
+            "Charles Dickens",
+            "Jane Austen",
+            "Mark Twain"
+          ],
+          "correctOptionIndex": 0,
+          "timeLimit": 25,
+          "points": 120,
+          "explanation": "William Shakespeare, the famous English playwright, wrote the tragic romance of 'Romeo and Juliet'."
+        },
+        {
+          "id": 5,
+          "questionText": "What is the chemical symbol for Gold?",
+          "options": [
+            "Ag",
+            "Go",
+            "Au",
+            "Gd"
+          ],
+          "correctOptionIndex": 2,
+          "timeLimit": 15,
+          "points": 100,
+          "explanation": "The symbol 'Au' for gold comes from its Latin name, 'aurum'."
+        },
+        {
+          "id": 6,
+          "questionText": "In which country would you find the ancient city of Petra?",
+          "options": [
+            "Egypt",
+            "Greece",
+            "Peru",
+            "Jordan"
+          ],
+          "correctOptionIndex": 3,
+          "timeLimit": 30,
+          "points": 150,
+          "explanation": "The famous archaeological site of Petra, known for its rock-cut architecture, is located in southern Jordan."
+        }
+      ]
     },
     {
       "id": 2,
-      "questionText": "Which planet is known as the 'Red Planet'?",
-      "options": [
-        "Venus",
-        "Mars",
-        "Jupiter",
-        "Saturn"
-      ],
-      "correctOptionIndex": 1,
-      "timeLimit": 20,
-      "points": 100,
-      "explanation": "Mars is often called the 'Red Planet' because of the iron oxide prevalent on its surface, which gives it a reddish appearance."
-    },
-    {
-      "id": 3,
-      "questionText": "What is the largest ocean on Earth?",
-      "options": [
-        "Atlantic Ocean",
-        "Indian Ocean",
-        "Arctic Ocean",
-        "Pacific Ocean"
-      ],
-      "correctOptionIndex": 3,
-      "timeLimit": 20,
-      "points": 100,
-      "explanation": "The Pacific Ocean is the largest and deepest of the world's five oceans, covering more than 30% of the Earth's surface."
-    },
-    {
-      "id": 4,
-      "questionText": "Who wrote the famous play 'Romeo and Juliet'?",
-      "options": [
-        "William Shakespeare",
-        "Charles Dickens",
-        "Jane Austen",
-        "Mark Twain"
-      ],
-      "correctOptionIndex": 0,
-      "timeLimit": 25,
-      "points": 120,
-      "explanation": "William Shakespeare, the famous English playwright, wrote the tragic romance of 'Romeo and Juliet'."
-    },
-    {
-      "id": 5,
-      "questionText": "What is the chemical symbol for Gold?",
-      "options": [
-        "Ag",
-        "Go",
-        "Au",
-        "Gd"
-      ],
-      "correctOptionIndex": 2,
-      "timeLimit": 15,
-      "points": 100,
-      "explanation": "The symbol 'Au' for gold comes from its Latin name, 'aurum'."
-    },
-    {
-      "id": 6,
-      "questionText": "In which country would you find the ancient city of Petra?",
-      "options": [
-        "Egypt",
-        "Greece",
-        "Peru",
-        "Jordan"
-      ],
-      "correctOptionIndex": 3,
-      "timeLimit": 30,
-      "points": 150,
-      "explanation": "The famous archaeological site of Petra, known for its rock-cut architecture, is located in southern Jordan."
+      "section": "Music Round",
+      "type": "audio-guess",
+      "questions": []
     }
   ]
 }

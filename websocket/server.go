@@ -37,7 +37,9 @@ type WebSocServer struct {
 	JoinRoom       chan *ClientEvent
 	LeaveRoom      chan *ClientEvent
 
-	StartQuiz chan *ClientEvent
+	StartQuiz    chan *ClientEvent
+	ForwardQuiz  chan *ClientEvent // New channel for advancing the quiz
+	SubmitAnswer chan *ClientEvent // New channel for submitting answers
 	// broadcast:  make(chan *Message, 5)
 	// Mu sync.RWMutex
 }
@@ -64,7 +66,9 @@ func NewWebSockServer() (wssvr *WebSocServer) {
 		JoinRoom:       make(chan *ClientEvent),
 		LeaveRoom:      make(chan *ClientEvent),
 
-		StartQuiz: make(chan *ClientEvent),
+		StartQuiz:    make(chan *ClientEvent),
+		ForwardQuiz:  make(chan *ClientEvent), // Initialize the new channel
+		SubmitAnswer: make(chan *ClientEvent), // Initialize the new channel
 	}
 	wssvr.SetupEventHandlers()
 	go wssvr.Run()
@@ -76,6 +80,8 @@ func (wssvr *WebSocServer) SetupEventHandlers() {
 	wssvr.Handlers[EventJoinRoom] = JoinRoomEventHandler
 	wssvr.Handlers[EventLeaveRoom] = LeaveRoomEventHandler
 	wssvr.Handlers[EventStartQuiz] = StartQuizEventHandler
+	wssvr.Handlers[EventForwardQuiz] = ForwardQuizEventHandler   // Register the new handler
+	wssvr.Handlers[EventSubmitAnswer] = SubmitAnswerEventHandler // Register the new handler
 }
 
 func (wssvr *WebSocServer) RouteEvent(evt *Event, c *Client) error {
@@ -147,6 +153,7 @@ func (wssvr *WebSocServer) AddRoom(cliEvt *ClientEvent) {
 				Role:     RoleCreator.String(),
 			})
 			roomInfo.SenderID = cli.ID
+			roomInfo.IsHost = true // Set IsHost to true for the creator
 
 			msg = "Create room Success"
 			log.Println(msg)
@@ -313,8 +320,17 @@ func (wssvr *WebSocServer) StartQuizF(cliEvt *ClientEvent) {
 				}
 			}
 
-			// Call CreateGame here, passing the broadcast function
-			game, err := wssvr.Games.CreateGame(room.ID, room.Creator.ID, room.Host.ID, broadcastFunc)
+			// Prepare initial player info from room participants
+			initialPlayers := make([]game.InitialPlayerInfo, 0, len(room.Participants))
+			for _, pDetail := range room.Participants {
+				initialPlayers = append(initialPlayers, game.InitialPlayerInfo{
+					ID:       pDetail.Client.ID,
+					Username: pDetail.Client.Username,
+				})
+			}
+
+			// Call CreateGame here, passing the broadcast function and initial players
+			game, err := wssvr.Games.CreateGame(room.ID, room.Creator.ID, room.Host.ID, broadcastFunc, initialPlayers)
 			if err != nil {
 				isSuccess = false
 				msg = fmt.Sprintf("Start Quiz failed: Failed to create game: %v", err)
@@ -337,6 +353,70 @@ func (wssvr *WebSocServer) StartQuizF(cliEvt *ClientEvent) {
 		}
 
 	}
+}
+
+func (wssvr *WebSocServer) ForwardQuizF(cliEvt *ClientEvent) {
+	var msg string
+	isSuccess := true
+	cli := cliEvt.Requester
+
+	room, ok := wssvr.Rooms[cli.RoomID]
+	if !ok {
+		isSuccess = false
+		msg = "Forward Quiz failed: Room not found"
+		log.Println(msg)
+	} else if room.Host.ID != cli.ID {
+		isSuccess = false
+		msg = "Forward Quiz failed: Only the room host can advance the quiz"
+		log.Println(msg)
+	} else {
+		log.Println("Forward Quiz Event received")
+		err := wssvr.Games.NextAction(room.ID, cli.ID) // Use the existing NextAction method
+		if err != nil {
+			isSuccess = false
+			msg = fmt.Sprintf("Forward Quiz failed: %v", err)
+			log.Println(msg)
+		} else {
+			msg = "Forward Quiz Success"
+			log.Println(msg)
+		}
+	}
+	// Define MessageQuizForward in message.go and use it here
+	SendEventCallback(cli, MessageQuizForward, isSuccess, msg, &BaseMessage{})
+
+}
+
+func (wssvr *WebSocServer) SubmitAnswerF(cliEvt *ClientEvent) {
+	var saEvt SubmitAnswerEvent
+	var msg string
+	isSuccess := true
+	cli := cliEvt.Requester
+	jsonRaw := cliEvt.EventInfo.Payload
+
+	if err := json.Unmarshal(jsonRaw, &saEvt); err != nil {
+		isSuccess = false
+		msg = fmt.Sprintf("Submit Answer failed: %v", err)
+		log.Println(msg)
+	} else {
+		log.Printf("Submit Answer Event received for answer index: %d", saEvt.AnswerIndex)
+		room, ok := cli.Wssvr.Rooms[cli.RoomID]
+		if !ok {
+			isSuccess = false
+			msg = "Submit Answer failed: Room not found"
+			log.Println(msg)
+		} else {
+			err := wssvr.Games.HandleAnswer(room.ID, cli.ID, saEvt.AnswerIndex)
+			if err != nil {
+				isSuccess = false
+				msg = fmt.Sprintf("Submit Answer failed: %v", err)
+				log.Println(msg)
+			} else {
+				msg = "Submit Answer Success"
+				log.Println(msg)
+			}
+		}
+	}
+	SendEventCallback(cli, MessageSubmitAnswer, isSuccess, msg, &BaseMessage{})
 }
 
 func (wssvr *WebSocServer) Run() {
@@ -363,6 +443,12 @@ func (wssvr *WebSocServer) Run() {
 
 		case cliEvt := <-wssvr.StartQuiz:
 			wssvr.StartQuizF(cliEvt)
+
+		case cliEvt := <-wssvr.ForwardQuiz: // Handle the new ForwardQuiz event
+			wssvr.ForwardQuizF(cliEvt)
+
+		case cliEvt := <-wssvr.SubmitAnswer: // Handle the new SubmitAnswer event
+			wssvr.SubmitAnswerF(cliEvt)
 		}
 	}
 }

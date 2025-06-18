@@ -26,11 +26,17 @@ type StartQuizEvent struct {
 	RoomID string `json:"room_id"`
 }
 
+type SubmitAnswerEvent struct {
+	AnswerIndex int `json:"answer_index"`
+}
+
 const (
 	// EventStatusUpdate = "notify_user_status"
 	// EventSendMessage    = "send_message"
-	EventCreateRoom = "create_room"
-	EventJoinRoom   = "join_room"
-	EventLeaveRoom  = "leave_room"
-	EventStartQuiz  = "start_quiz"
+	EventCreateRoom   = "create_room"
+	EventJoinRoom     = "join_room"
+	EventLeaveRoom    = "leave_room"
+	EventStartQuiz    = "start_quiz"
+	EventForwardQuiz  = "quiz_forward" // New event for moving the quiz forward
+	EventSubmitAnswer = "submit_answer"
 )
