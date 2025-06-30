@@ -81,6 +81,9 @@ func (g *Game) nextState() error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
+	log.Printf("Game %s: nextState called. Current State: %s, Current Section: %d/%d, Current Question In Section: %d/%d",
+		g.ID, g.State, g.currentSection+1, len(g.quiz.Sections), g.currentQuestionInSection+1, len(g.quiz.Sections[g.currentSection].Questions))
+
 	switch g.State {
 	case StateTitle:
 		// Logic to show a "section" screen before the questions begin.
@@ -100,6 +103,8 @@ func (g *Game) nextState() error {
 			g.currentSection++
 			g.currentQuestionInSection = 0 // Reset question index for the new section
 
+			log.Printf("Game %s: After incrementing section. Current Section: %d, Total Sections: %d", g.ID, g.currentSection, len(g.quiz.Sections))
+
 			// Check if there are more sections
 			if g.currentSection < len(g.quiz.Sections) {
 				// Show the next section title screen
@@ -111,7 +116,8 @@ func (g *Game) nextState() error {
 				log.Printf("Game %s: Showing section '%s'. Waiting for host.", g.ID, g.quiz.Sections[g.currentSection].Section)
 			} else {
 				// No more sections, end the game.
-				g.finishGame()
+				log.Printf("Game %s: All sections completed. Calling finishGameInternal.", g.ID)
+				g.finishGameInternal() // Call internal function directly as mutex is already held
 			}
 		}
 
@@ -144,6 +150,7 @@ func (g *Game) finishQuestion() {
 
 	// Prevent this from running twice (e.g., if timer fires right after last player answers)
 	if g.State != StateQuestion {
+		log.Printf("Game %s: finishQuestion called but state is %s, not StateQuestion. Returning.", g.ID, g.State)
 		return
 	}
 
@@ -199,12 +206,62 @@ func (g *Game) handlePlayerAnswer(playerID string, answerIndex int) error {
 	return nil
 }
 
-// finishGame replaces broadcastFinalResults and is called when the game ends.
+// LeaderboardEntry represents a single player's entry in the final leaderboard.
+type LeaderboardEntry struct {
+	ID    string `json:"ID"`
+	Name  string `json:"Name"`
+	Score int    `json:"Score"`
+}
+
+// finishGame is a public wrapper that ensures the lock is held before calling finishGameInternal.
+// This is used when finishGame is called from a new goroutine (e.g., by a timer or player answer).
 func (g *Game) finishGame() {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.finishGameInternal()
+}
+
+// finishGameInternal contains the core logic for ending the game.
+// It assumes the mutex is already locked by the caller.
+func (g *Game) finishGameInternal() {
+	log.Printf("Game %s: Entering finishGameInternal. Current State: %s", g.ID, g.State)
+
+	// Prevent this from running twice (e.g., if timer fires right after last player answers)
+	// This check is crucial here as finishGameInternal can be called from multiple paths.
+	if g.State == StateFinished {
+		log.Printf("Game %s: finishGameInternal: State is already Finished. Returning.", g.ID)
+		return
+	}
+
 	g.State = StateFinished
-	// ... (The logic from your broadcastFinalResults with sorting) ...
-	// g.broadcastMessage("game_over", payload)
-	// log.Printf("Game %s finished.", g.ID)
+	log.Printf("Game %s: State set to StateFinished.", g.ID)
+
+	// Create a slice to hold leaderboard entries
+	leaderboard := make([]LeaderboardEntry, 0, len(g.players))
+	for _, player := range g.players {
+		leaderboard = append(leaderboard, LeaderboardEntry{
+			ID:    player.ID,
+			Name:  player.Name,
+			Score: player.Score,
+		})
+	}
+
+	// Sort the leaderboard by score in descending order
+	// Using a custom sort function
+	for i := 0; i < len(leaderboard)-1; i++ {
+		for j := i + 1; j < len(leaderboard); j++ {
+			if leaderboard[i].Score < leaderboard[j].Score {
+				leaderboard[i], leaderboard[j] = leaderboard[j], leaderboard[i]
+			}
+		}
+	}
+
+	payload := map[string]interface{}{
+		"leaderboard": leaderboard,
+	}
+	log.Printf("Game %s: Sending 'game_over' message with payload: %+v", g.ID, payload)
+	g.broadcastMessage("game_over", payload)
+	log.Printf("Game %s finished. Leaderboard sent.", g.ID)
 }
 
 // --- Updated Helper Methods for Broadcasting ---
